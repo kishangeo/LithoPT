@@ -648,7 +648,7 @@
       if (!bySource.has(k)) bySource.set(k, new Set());
       bySource.get(k).add(e.name);
     }
-    const lines = [`Tiwari, K. (2026). LithoPT v${L.VERSION}: browser-based thermobarometry [software]. ${appUrl()}`, "",
+    const lines = [`Tiwari, K. (2026). LithoPT: browser-based thermobarometry with calibration-domain diagnostics and model-choice uncertainty (Version v${L.VERSION}) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.24341232`, "",
       "Original calibrations used (cite each):", ...[...bySource].map(([k, n]) => `• ${[...n].join("; ")}: ${k}`)];
     return lines.join("\n");
   }

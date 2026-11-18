@@ -4,6 +4,8 @@ Browser-based thermobarometry with source-verified equations, calibration-domain
 
 *Author: Kishan Tiwari, Department of Geology and Geophysics, IIT Kharagpur (kishantiwari@iitkgp.ac.in, ORCID [0000-0003-0014-914X](https://orcid.org/0000-0003-0014-914X))*
 
+**Web app: https://lithopt.vercel.app/** · [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24341232.svg)](https://doi.org/10.5281/zenodo.24341232)
+
 [![tests](https://github.com/kishangeo/LithoPT/actions/workflows/ci.yml/badge.svg)](https://github.com/kishangeo/LithoPT/actions/workflows/ci.yml) ![licence: MIT](https://img.shields.io/badge/licence-MIT-blue)
 
 LithoPT is an open-source thermobarometry program that runs entirely in the web browser. It takes oxide analyses (wt%) of coexisting phases and computes:
@@ -97,7 +99,9 @@ Columns LithoPT doesn't recognise are listed back to you rather than guessed. A 
 
 ## Citing
 
-Cite LithoPT (see `CITATION.cff`) **and** the original publication of every equation you use. The *Equations & references* tab lists each one with its DOI, and the Share dialog builds the citation list for your calculation.
+> Tiwari, K. (2026). LithoPT: browser-based thermobarometry with calibration-domain diagnostics and model-choice uncertainty (Version v4.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.24341232
+
+Cite LithoPT **and** the original publication of every equation you use. The *Equations & references* tab lists each one with its DOI, and the Share dialog builds the citation list for your calculation.
 
 ## License
 
