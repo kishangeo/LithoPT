@@ -168,4 +168,53 @@ near(L.evaluate("T_Montierth1995", L.prepare({ Liq: { SiO2: 51, TiO2: 2.2, Al2O3
   passed++;
 }
 
+// ---- decision support: phase guess, ranking, intersection geometry, report ----
+{
+  const A = {
+    Grt: { SiO2: 37.52, TiO2: 0.05, Al2O3: 21.4, Cr2O3: 0.02, FeOt: 29.8, MnO: 1.85, MgO: 4.2, CaO: 4.5, Na2O: 0.03, K2O: 0.01 },
+    Bt: { SiO2: 35.8, TiO2: 2.85, Al2O3: 18.5, FeOt: 18.2, MnO: 0.15, MgO: 11.2, CaO: 0.08, Na2O: 0.25, K2O: 9.4 },
+    Pl: { SiO2: 60.1, Al2O3: 25.0, CaO: 6.6, Na2O: 7.6, K2O: 0.15 },
+    Cpx: { SiO2: 52.4, TiO2: 0.35, Al2O3: 4.1, Cr2O3: 0.9, FeOt: 3.1, MnO: 0.09, MgO: 16.2, CaO: 20.3, Na2O: 1.2, K2O: 0.01 },
+    Opx: { SiO2: 56.8, TiO2: 0.08, Al2O3: 0.9, Cr2O3: 0.3, FeOt: 6.1, MnO: 0.13, MgO: 34.1, CaO: 0.85, Na2O: 0.12 },
+    Ol: { SiO2: 40.8, FeOt: 9.2, MnO: 0.13, MgO: 49.5, CaO: 0.05 },
+    Sp: { TiO2: 0.1, Al2O3: 50.0, Cr2O3: 17.0, FeOt: 12.5, MnO: 0.1, MgO: 20.0 },
+    Amp: { SiO2: 40.57, TiO2: 2.45, Al2O3: 12.82, FeOt: 13.11, MnO: 0.26, MgO: 13.02, CaO: 11.63, Na2O: 2.2, K2O: 0.92 },
+    Ms: { SiO2: 46.5, TiO2: 0.4, Al2O3: 35.5, FeOt: 1.2, MgO: 0.7, Na2O: 1.1, K2O: 9.6 },
+    Kfs: { SiO2: 64.8, Al2O3: 18.6, CaO: 0.1, Na2O: 1.5, K2O: 14.5 },
+    Liq: { SiO2: 72.0, TiO2: 0.3, Al2O3: 14.0, FeOt: 2.0, MgO: 0.5, CaO: 1.5, Na2O: 3.8, K2O: 4.2 }
+  };
+  for (const [ph, comp] of Object.entries(A)) { assert.strictEqual(L.classifyMineral(comp).phase, ph, "classifyMineral " + ph); passed++; }
+  assert.strictEqual(L.classifyMineral(A.Ms).supported, false, "muscovite has no equations"); passed++;
+
+  const pelite = { Grt: A.Grt, Bt: A.Bt, Pl: A.Pl }, opt = { Pmin: 0, Pmax: 70, eqOpt: { gammaGrs: 1, gammaAn: 1 } };
+  const rec = L.recommendModels(pelite, Object.assign({ P_kbar: 6, T_K: 923.15 }, opt));
+  assert.ok(rec.pairs.length >= 1 && rec.thermometers.length >= 1 && rec.barometers.length >= 1, "recommendModels returns ranked lists");
+  assert.ok(rec.pairs.every((p, i, a) => !i || a[i - 1].score >= p.score), "pairs sorted by score");
+  assert.ok(rec.thermometers.every((t) => t.score >= 0 && t.score <= 100 && t.parts.phases + t.parts.domain + t.parts.health + t.parts.precision === +t.raw.toFixed(1)), "score is the sum of its parts");
+  passed += 3;
+
+  // geometry: two straight lines with known slopes cross at the angle given by their SEE-scaled directions
+  const det = L.solvePT("T_FerrySpear1978", "P_Koziol1988_GASP", L.prepare(pelite), opt);
+  const g = L.intersectionGeometry("T_FerrySpear1978", "P_Koziol1988_GASP", L.prepare(pelite), det, opt);
+  const a1 = Math.atan2(1 / g.scaleP, g.dTdP / g.scaleT), a2 = Math.atan2(g.dPdT / g.scaleP, 1 / g.scaleT);
+  close(g.angle, Math.abs(a1 - a2) * 180 / Math.PI, 1e-9, "intersection angle");
+  assert.strictEqual(g.condition, "well-conditioned"); passed++;
+
+  // zero perturbation: no spread, so the correlation is undefined rather than a division by zero
+  const mc0 = L.monteCarloPT("T_FerrySpear1978", "P_Koziol1988_GASP", pelite, Object.assign({ N: 20, rel: 0, floor: 0 }, opt));
+  assert.ok(Number.isNaN(mc0.rho) && mc0.T_C.sd < 1e-9, "rho undefined without spread"); passed++;
+
+  const R = require("../lithopt-report.js");
+  const rep = R.build({ L, sample: pelite, system: "grt_bt", cond: { P_kbar: 6, T_C: 650 }, eqOpt: opt.eqOpt, date: "test",
+    pt: { tId: "T_FerrySpear1978", pId: "P_Koziol1988_GASP", det, solveOpt: opt, mc: { N: 200, rel: 0.02, floor: 0.02, seed: 42 } }, ens: L.ensemblePT(pelite, opt) });
+  for (const must of ["## 1. Summary", "## 2. Compositions", "## 3. Equations", "## 4. Uncertainty", "## 5. Coupled solution", "## 6. Diagram", "Variance budget", "X_Alm 0.663", "Fe–Mg cation exchange", "Net-transfer reaction", "intermediate T/P"])
+    assert.ok(rep.markdown.includes(must), "report contains: " + must);
+  assert.ok(rep.mcTotal.T_C.sd > rep.mcAnalytical.T_C.sd, "calibration error widens the Monte Carlo spread");
+  const html = R.toHtml(rep.markdown + "\n\n<script>alert(1)</script>");
+  assert.ok(html.includes("<table>") && html.includes("<h2>") && !html.includes("<script>"), "report HTML is built and escaped");
+  const noPt = R.build({ L, sample: { Amp: A.Amp }, system: "amp_only", cond: { P_kbar: 5, T_C: 950 } });
+  assert.ok(noPt.markdown.includes("No coupled P–T solution") && noPt.markdown.includes("Empirical single-phase"), "report without a P–T solution");
+  passed += 4;
+}
+
 console.log(`core.test.js: ${passed} assertions passed`);

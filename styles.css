@@ -889,3 +889,53 @@ th[title] { text-decoration: underline dotted var(--border-strong); text-underli
   .tabs-nav .tab-btn { padding: 0.35rem 0; font-size: 10.5px; }
   .tabs-nav .tab-btn::after { text-overflow: clip; }
 }
+
+/* ---- advisor, report, import preview, diagram read-out ---- */
+.advisor { margin-bottom: 1rem; }
+.advisor > summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.9rem; list-style: none; }
+.advisor > summary::-webkit-details-marker { display: none; }
+.advisor > summary::before { content: "▸"; color: var(--text-2); }
+.advisor[open] > summary::before { content: "▾"; }
+.advisor[open] > summary { margin-bottom: 0.9rem; }
+.advisor .chip[aria-checked="true"] .phase-abbr { color: inherit; }
+.adv-systems { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.8rem 0; }
+.adv-systems p { flex-basis: 100%; margin: 0; }
+.adv-system { display: flex; flex-direction: column; gap: 0.1rem; text-align: left; padding: 0.45rem 0.7rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; font-size: 0.8rem; cursor: pointer; }
+.adv-system span { color: var(--text-2); font-size: 0.74rem; }
+.adv-system:hover { border-color: var(--accent); }
+.adv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.7rem; }
+.adv-card { border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 0.85rem; background: var(--surface); font-size: 0.8rem; min-width: 0; }
+.adv-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.6rem; }
+.adv-value { font-variant-numeric: tabular-nums; margin: 0.35rem 0; color: var(--text); font-weight: 600; }
+.adv-card ul { margin: 0 0 0.6rem; padding-left: 1.05rem; color: var(--text-2); }
+.adv-card li { margin: 0.15rem 0; overflow-wrap: anywhere; }
+.head-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.35rem; }
+.paste-btn { padding: 0.15rem 0.5rem; font-size: 0.72rem; }
+.link-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); cursor: pointer; text-decoration: underline; }
+.pt-readout { margin: 0.5rem 0 0; font-variant-numeric: tabular-nums; min-height: 1.2em; }
+.report-card { margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.batch-preview { margin: 1rem 0; }
+.batch-preview .select-input { min-width: 11rem; padding: 0.3rem 0.5rem; }
+.batch-preview .btn { margin-top: 0.8rem; }
+.report-preview { margin-top: 1rem; padding: 1rem 1.1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); max-height: 70vh; overflow: auto; }
+.report-body { font-size: 0.85rem; line-height: 1.55; color: var(--text); overflow-wrap: anywhere; }
+.report-body h1 { font-size: 1.25rem; margin: 0 0 0.4rem; }
+.report-body h2 { font-size: 1.02rem; margin: 1.4rem 0 0.5rem; padding-bottom: 0.25rem; border-bottom: 1px solid var(--border); }
+.report-body h3 { font-size: 0.9rem; margin: 1rem 0 0.3rem; }
+.report-body p, .report-body ul { margin: 0.5rem 0; }
+.report-body ul { padding-left: 1.2rem; }
+.report-body table { border-collapse: collapse; width: 100%; margin: 0.6rem 0; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.report-body th, .report-body td { border: 1px solid var(--border); padding: 0.25rem 0.45rem; text-align: left; vertical-align: top; }
+.report-body th { background: var(--surface-2, transparent); }
+.report-body figure { margin: 0.8rem 0; }
+.report-body img { max-width: 100%; height: auto; border: 1px solid var(--border); }
+#printReport { display: none; }
+@media print {
+  body.printing-report > *:not(#printReport) { display: none !important; }
+  body.printing-report { background: #fff !important; }
+  body.printing-report #printReport { display: block; color: #000; font-size: 10pt; --border: #999; --text: #000; }
+  body.printing-report #printReport a { color: #000; text-decoration: none; }
+  body.printing-report #printReport table, body.printing-report #printReport figure, body.printing-report #printReport li { break-inside: avoid; }
+  body.printing-report #printReport h2, body.printing-report #printReport h3 { break-after: avoid; }
+  @page { margin: 16mm; }
+}

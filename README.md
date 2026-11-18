@@ -28,6 +28,7 @@ No data leave the browser, and after the first visit the app also works offline.
 | File | Purpose |
 |---|---|
 | `lithopt-core.js` | Calculation engine without any DOM code (stoichiometry, mineral components, equation registry, solver, Monte Carlo, ensembles). Works in browsers and in Node.js. |
+| `lithopt-report.js` | Interpretation report: turns a calculation into a Markdown/HTML report (no DOM code; also runs in Node.js) |
 | `app.js`, `index.html`, `styles.css` | User interface |
 | `sw.js`, `manifest.webmanifest` | Offline cache and home-screen installation |
 | `lithopt-domains.js`, `validation/make_domains.py` | Calibration-domain summaries (means, inverse covariances, D² percentiles; no experimental data) and the script that derives them from a published calibration dataset |
@@ -46,6 +47,15 @@ The calibration-domain check (shrinkage Mahalanobis D² of an analysis from an e
 3. Type or paste oxide analyses (wt%). Every equation of the system is evaluated as you type, with its stated error, equilibrium tests and calibration-domain status.
 4. Open *P–T & Monte Carlo*, pick one thermometer and one barometer, and press *Solve P–T* for the intersection and its correlated uncertainty. *Run model ensemble* solves all compatible pairs.
 5. *Share* gives a link that reproduces the calculation exactly, and the list of papers to cite.
+6. *Interpretation report* (below the results in either tab) explains the result in words and downloads it as Markdown or prints it to PDF.
+
+### New in 4.1
+
+- **Interpretation report**: compositions and stoichiometric flags, equilibrium tests, the type and limits of each equation, calibration-domain status, an uncertainty budget that separates analytical from calibration error (two Monte Carlo runs), intersection geometry, comparison with all other pairs, the P–T diagram, citations and the share link.
+- **Advisor** (Calculator tab): tick the minerals you have to see which systems they unlock, or rank the equations that can be evaluated for the entered analyses (a transparent 0–100 heuristic: phases, calibration domain, totals and equilibrium tests, published error, intersection angle) and apply a pair with one click.
+- **Import**: Excel `.xlsx` (first sheet, read in the browser without any library), pasted tables, and tables with one analysis per row; the mineral of each row is taken from a `Phase`/`Mineral` column or guessed from its stoichiometry and confirmed by you before the batch runs.
+- **Mineral cards**: cation-sum badge, analytical-total badge with ranges for hydrous phases, and paste from a spreadsheet.
+- **P–T diagram**: SVG export, pointer read-out of T, P and depth, optional reference gradients, and a measure of how well the two curves intersect.
 
 The full user manual and a glossary are in the app (*User manual*, *Glossary*) and in `docs/LithoPT_User_Manual.pdf`. No dependencies are needed to use the app; Node.js ≥ 18 is needed only for the tests.
 

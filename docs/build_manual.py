@@ -164,7 +164,7 @@ TABLE([["Tab", "Purpose"],
        ["Calculator", "Choose an equilibrium system, enter the P (for thermometers) and T (for barometers) at which to evaluate, and enter oxide analyses of the phases. All equations of the system are evaluated side by side with their SEE, calibration-domain status and verification status. Equilibrium tests and phase components are shown below."],
        ["P–T solution & Monte Carlo", "Pair any thermometer with any barometer whose phases are available; LithoPT finds their intersection, propagates uncertainty by Monte Carlo simulation, converts P to depth and plots the result. The model-ensemble button solves all compatible pairs."],
        ["Structural formula", "Cations per formula unit for garnet, pyroxenes, olivine, spinel, feldspars, biotite and amphibole, with Droop (1987) Fe³⁺ where applicable."],
-       ["Batch (CSV)", "Upload many samples at once; every applicable equation is evaluated for every row; results can be exported."],
+       ["Batch (CSV)", "Upload many samples at once (CSV, text, Excel .xlsx or a pasted table); every applicable equation is evaluated for every row; results can be exported and each sample opened in the calculator."],
        ["Equations & references", "Searchable catalogue of all equations with system, type, SEE, calibration range, verification status, calibration dataset and DOI."]],
       [3.5, 13])
 H2("2.3 A first calculation")
@@ -176,7 +176,17 @@ H2("2.4 Entering analyses")
 B(["Enter oxide concentrations in weight percent; total iron as FeO_{t}. Blank fields are treated as zero.",
    "Negative values (e.g. below-detection results reported as negative numbers) are rejected with an error message; set them to zero or leave them blank.",
    "Melts (glasses or melt inclusions) accept P_{2}O_{5}, H_{2}O (wt%), Fe³⁺/ΣFe (for the melt oxybarometer and the Fe–Mg equilibrium tests) and Zr (ppm, for zircon saturation). Garnet accepts Ni (ppm) in the garnet-only system. Fields that no equation of the selected system uses are hidden.",
-   "The badge and bar next to each phase show the analytical total; values outside 98.5–101.5 wt% are highlighted (hydrous phases and glasses have lower totals)."])
+   "The badges next to each phase show the analytical total (green within 98.5–101.5 wt%, or 92–98 wt% for biotite and 95–98.8 wt% for amphibole; amber within 97–102 wt%; red otherwise) and, for minerals with a fixed oxygen basis, the cation sum with all Fe as Fe²⁺.",
+   "*Paste* on each phase reads oxide values copied from a spreadsheet: a header row with a value row, name–value pairs, or bare numbers in the order of the fields. Fe₂O₃ is converted to FeO and added to total iron."])
+H2("2.5 The advisor")
+P("The *Advisor* panel at the top of the Calculator answers two questions. Ticking the minerals you analysed lists the systems they allow and how many thermometers and barometers each contains, and states whether a coupled P–T solution is possible. *Rank equations* scores every equation that can be evaluated for the analyses entered, and every thermometer–barometer pair that intersects, on a fixed scale of 0–100:")
+TABLE([["Criterion", "Points"],
+       ["Phases present and result physically plausible", "25"],
+       ["Calibration domain: inside 30, marginal 15, outside 0, not assessed 15", "30"],
+       ["Analytical totals of the phases used (10) and the Fe–Mg equilibrium tests involving them (10)", "20"],
+       ["Published SEE: thermometers 15 at ≤ 25 °C to 0 at ≥ 75 °C; barometers 15 at ≤ 1 kbar to 0 at ≥ 4 kbar", "15"],
+       ["Pairs only: intersection angle (Section 7), full at ≥ 60°", "10"]], [13, 3])
+P("Single equations are scaled from 90 to 100 points. The score ranks what the numbers can show; it cannot check textures, that the minerals grew together, or that buffering phases such as quartz, an Al₂SiO₅ polymorph or rutile are present. Because calibration-domain summaries exist for only one equation, most equations receive the same domain points, and the ranking is then driven by the published error and the intersection angle. *Apply and solve P–T* selects the pair in the P–T tab and solves it.")
 
 # ============================================================== 3 background
 H1("3. Scientific background")
@@ -332,7 +342,8 @@ H1("7. Coupled P–T solutions")
 P("A thermometer returns T for an assumed P and a barometer P for an assumed T. The equilibrium P–T point is their intersection. LithoPT finds the root of")
 EQ("*g*(*P*) = *P*_{eq}(*T*_{eq}(*P*)) − *P* = 0", "7.1")
 P("by scanning *g* on 120 equal intervals between user bounds (default 0–70 kbar) for the first sign change, followed by bisection to 10⁻⁶ kbar. Fixed-point (Picard) iteration — alternately applying thermometer and barometer — converges only if the product of the slopes dT_{eq}/dP · dP_{eq}/dT is smaller than one in absolute value, i.e. it fails when the two curves intersect at a shallow angle; bisection has no such restriction. If *g* does not change sign within the bounds, LithoPT reports *no intersection* instead of returning a number. Equations that are independent of P or T (e.g. Al-in-hornblende) simply give flat or vertical curves.")
-P("The P–T diagram plots T_{eq}(P) (orange), P_{eq}(T) (blue), the solution, Monte Carlo points and 1σ/2σ ellipses, and optionally all model-ensemble solutions.")
+P("**Quality of the intersection.** Where two curves cross at a small angle, a small shift of either one moves the solution far. LithoPT computes the local slopes d*T*/d*P* of the thermometer and d*P*/d*T* of the barometer by central differences (±0.05 kbar, ±1 K), scales T and P by the standard errors of the two equations, and reports the angle between the curves in the scaled plane: **well-conditioned** at ≥ 30°, **oblique** at 15–30°, **grazing** below 15°. For a grazing intersection the Monte Carlo spread, not the published SEE, is the realistic error.")
+P("The P–T diagram plots T_{eq}(P) (orange), P_{eq}(T) (blue), the solution, Monte Carlo points and 1σ/2σ ellipses, and optionally all model-ensemble solutions and reference gradients of 10, 20 and 35 °C/km from a 0 °C surface (for the density of the depth model). Moving the pointer over the diagram shows T, P and depth. *Export PNG* saves a 1400 × 1040 pixel image; *Export SVG* saves a vector drawing for illustration software.")
 
 # ============================================================== 8 uncertainty
 H1("8. Uncertainty: analytical, calibration and model choice")
@@ -347,6 +358,16 @@ H2("8.3 Model-choice uncertainty (ensemble)")
 P("The ensemble solves every thermometer–barometer pair whose phases are present (optionally restricted to selected systems), discards solutions outside physical limits (Chapter 10), and reports the median, 16th–84th percentiles and standard deviation of the solutions — for all pairs and for pairs in which neither equation is outside a known calibration domain. Three kinds of equation are left out unless requested: equations marked *pending*, calibrations restricted to particular magma types (the alkaline-only equations of Masotta et al., 2013), and the liquid-only saturation thermometers, which assume saturation in a phase that may be absent.")
 e = RES["ensemble"]
 P(f"**Test.** On {e['nExperiments']} clinopyroxene–liquid experiments compiled by Neave and Putirka (2017) as test data (P ≤ 30 kbar), {e['nThermometers']} thermometers and {e['nBarometers']} barometers give {len(e['pairs'])} pairs. Individual pairs reproduce experimental pressure with root-mean-square errors of {e['pairRange']['rmseP'][0]}–{e['pairRange']['rmseP'][1]} kbar and temperature with {e['pairRange']['rmseT'][0]:.0f}–{e['pairRange']['rmseT'][1]:.0f} °C. The ensemble median gives {e['ensembleMedian']['rmseP']} kbar and {e['ensembleMedian']['rmseT']:.0f} °C: as good as the best single pair for pressure, without having to know in advance which pair that is, but not for temperature, where the best thermometer is better than the median. The median spread between pairs for one sample is {e['medianSpread']['P']} kbar and {e['medianSpread']['T']:.0f} °C. The spread shows how much a result depends on the choice of equations; it is an additional, not a complete, measure of uncertainty. Many of these experiments were used to calibrate one or more of the equations, so the errors are not independent estimates of accuracy.")
+
+H2("8.4 Interpretation report")
+P("The *Interpretation report* card, below the results in the Calculator and in the P–T tab, writes the current calculation as a report that can be viewed, downloaded as Markdown or printed to PDF with the browser's print dialog. Its text is generated from the numbers by fixed rules. It contains:")
+B(["**Summary**: the P–T solution in °C, K, kbar and GPa; depth for the chosen density; the apparent average gradient (°C/km and °C/GPa). For metamorphic systems the ratio T/P is classed as low (< 375 °C/GPa), intermediate or high (> 775 °C/GPa) T/P metamorphism (Brown and Johnson, 2018); for magmatic systems the depth is placed in the upper, middle or lower crust of a nominal 40 km section.",
+   "**Compositions**: oxides and totals; cations per formula unit and Fe³⁺/ΣFe (Section 4.2); the components used by the equations; flags for totals outside the usual range and cation sums more than 0.03 apfu from the ideal; the Fe–Mg equilibrium tests (Chapter 10).",
+   "**Equations**: for each equation its source, SEE, calibration range, type (Fe–Mg exchange, net-transfer, solvus, trace-element, melt saturation, mineral–melt or single-phase empirical) with what that type implies, and its calibration-domain status; then a table of every equation that can be evaluated.",
+   "**Uncertainty**: two Monte Carlo runs with the settings of the P–T tab, analytical only and analytical plus calibration. With σ²_{total} ≈ σ²_{analytical} + σ²_{calibration} the report states which share of the variance of T and of P comes from each source, and interprets the correlation ρ.",
+   "**Coupled solution**: the solver, the slopes and intersection angle (Section 7), and the model ensemble. When Fe–Mg exchange thermometers give a median more than 60 °C below that of other thermometers for the same sample, the report notes that this is the usual signature of exchange during cooling; agreement within 30 °C is noted as consistent with preserved peak compositions.",
+   "**Diagram and sources**: the P–T diagram (in the PDF), the papers to cite and the share link that reproduces the calculation."])
+P("Without a coupled solution the report covers the single-equation results at the assumed P or T and omits the depth, gradient and Monte Carlo sections.")
 
 H1("9. Calibration-domain diagnostics")
 P("An empirical equation is reliable only for compositions similar to those of its calibration experiments. For equations whose calibration datasets are openly available, LithoPT summarises each dataset by the mean vector **μ** and covariance **Σ** of the oxide compositions of the phases used (up to 21 variables) and computes, for an analysis **x**, the squared Mahalanobis distance")
@@ -379,6 +400,10 @@ B(["`Sample`, `P_kbar` (pressure for thermometers), `T_C` (temperature for barom
 P("Unrecognised columns are listed rather than guessed; rows with non-numeric values in recognised columns are skipped with a message; missing P_kbar or T_C columns trigger a warning (0 kbar / 0 °C would be used). Every equation whose phases are present is evaluated; equilibrium tests are appended; implausible values are left blank. On export, text cells beginning with =, +, − or @ are prefixed with an apostrophe so that spreadsheet programs do not interpret them as formulas. Results can be exported as CSV. A template is available from the batch tab.")
 
 # ============================================================== 13 reproducibility
+P("**Other inputs.** Excel workbooks (.xlsx; the first worksheet, read in the browser with no external library; legacy .xls files are not read) and tables pasted with *Paste table* are accepted. A table with one analysis per row — oxide columns, optionally `Sample`, `Phase` or `Mineral`, `P_kbar` and `T_C` — is shown first as a preview: the mineral of each row is taken from the Phase column (common names and abbreviations are recognised) or estimated from its stoichiometry, with a confidence score, and can be changed or skipped. Rows with the same Sample name form one sample; several analyses of the same mineral are averaged. FeO, FeO* and FeOt are read as total iron; Fe₂O₃ is converted to FeO and added.")
+P("**Stoichiometric mineral estimate.** For each candidate mineral the analysis is recalculated on that mineral's oxygen basis (12 O garnet, 6 O pyroxenes, 4 O olivine and spinel, 8 O feldspars, 11 O micas, 23 O amphibole, 3 O ilmenite) and compared with windows for Si, Al, the main cation groups, the cation sum and the analytical total. Each criterion scores 1 inside its window, falling to 0 half a window-width outside; the score is the mean of the minimum and the average. Analyses scoring below 0.85 for every mineral are treated as glass or whole rock. Glass cannot always be told from amphibole or pyroxene by stoichiometry alone, which is why the preview must be confirmed.")
+P("Click a sample name in the results table to open that sample in the calculator.")
+
 H1("13. Reproducibility, privacy and offline use")
 B(["**Share link**: the complete state (compositions, system, equations, options) is encoded in the URL fragment (#state=…). Fragments are never sent to the web server; only the recipient's browser reads them. Opening the link restores the calculation exactly.",
    "**JSON state**: *Save JSON* and *Load JSON* store and restore the same state as a file. On loading, only recognised phases and numeric fields are accepted.",
@@ -422,6 +447,7 @@ B(["Check equilibrium (K_D tests, textures, zoning) before interpreting mineral�
    "The GASP barometer with ideal activities (γ = 1) generally overestimates pressure; supply activity coefficients from a solution model.",
    "Trace-element thermometers require realistic a_{TiO₂} and a_{SiO₂} when rutile or quartz is absent.",
    "Liquid-only thermometers give the temperature of saturation in a phase; they are meaningful only if that phase was present.",
+   "The advisor score and the interpretation report are fixed rules applied to the numbers. They do not replace petrographic evidence of equilibrium, and the report's text should be checked before it is quoted.",
    "Limitations: Fe³⁺ in biotite and amphibole is not estimated; GASP activity models are user-supplied; analytical errors are treated as independent and Gaussian; covariances of regression coefficients are not propagated; calibration-domain summaries exist for one dataset; the Cr-in-garnet barometer of Ryan et al. (1996), machine-learning thermobarometers and elastic (host–inclusion) barometry are not included."])
 
 H1("16. Glossary")
@@ -486,7 +512,8 @@ for e in D["eqs"]:
 P("Equation sources (with DOI):")
 B([f"{'; '.join(sorted(names))} — {d}" for d, names in sorted(REFS.items(), key=lambda kv: sorted(kv[1])[0])])
 P("Other works cited in this manual:")
-B(["CIAAW (Commission on Isotopic Abundances and Atomic Weights), 2021. Standard atomic weights. https://www.ciaaw.org",
+B(["Brown, M., Johnson, T., 2018. Secular change in metamorphism and the onset of global plate tectonics. American Mineralogist 103, 181–196. https://doi.org/10.2138/am-2018-6166",
+   "CIAAW (Commission on Isotopic Abundances and Atomic Weights), 2021. Standard atomic weights. https://www.ciaaw.org",
    "Droop, G.T.R., 1987. A general equation for estimating Fe³⁺ concentrations in ferromagnesian silicates and oxides from microprobe analyses, using stoichiometric criteria. Mineralogical Magazine 51, 431–435. https://doi.org/10.1180/minmag.1987.051.361.10",
    "Frost, B.R., 1991. Introduction to oxygen fugacity and its petrologic importance. Reviews in Mineralogy 25, 1–9.",
    "Holdaway, M.J., 1971. Stability of andalusite and the aluminum silicate phase diagram. American Journal of Science 271, 97–131.",

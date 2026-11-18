@@ -1,5 +1,5 @@
 /**
- * LithoPT core engine v4.0.0
+ * LithoPT core engine v4.1.0
  * Author: Kishan Tiwari <kishantiwari@iitkgp.ac.in>
  *
  * Pure, DOM-free calculation library: stoichiometry, mineral components, thermobarometric
@@ -19,7 +19,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const VERSION = "4.0.0";
+  const VERSION = "4.1.0";
   const R = 8.314462618; // J mol⁻¹ K⁻¹ (CODATA 2018)
   const ln = Math.log, log10 = Math.log10;
 
@@ -740,7 +740,7 @@
     const T = pts.map((p) => p.T_K - 273.15), P = pts.map((p) => p.P_kbar), sT = stats(T), sP = stats(P);
     const cov = T.reduce((acc, t, i) => acc + (t - sT.mean) * (P[i] - sP.mean), 0) / (pts.length - 1);
     const den = sT.sd * sP.sd; // zero spread (e.g. no perturbation) has no defined correlation
-    return { points: pts, failed, N, T_C: sT, P_kbar: sP, cov, rho: den > 0 ? Math.max(-1, Math.min(1, cov / den)) : NaN };
+    return { points: pts, failed, N, T_C: sT, P_kbar: sP, cov, rho: sT.sd > 1e-9 * Math.abs(sT.mean) && sP.sd > 1e-9 * Math.abs(sP.mean) ? Math.max(-1, Math.min(1, cov / den)) : NaN }; // spread at rounding level is no spread
   }
 
   // ---------------------------------------------------------------------------
@@ -793,11 +793,123 @@
     return { pairs, nSolved: good.length, summary: good.length >= 2 ? sum(good) : null, summaryInDomain: inD.length >= 2 ? sum(inD) : null };
   }
 
+  // ---------------------------------------------------------------------------
+  // 9. Decision support: intersection geometry, phase guess from oxides, model ranking
+  // ---------------------------------------------------------------------------
+  /**
+   * Local slopes of the two curves at a P–T solution (central differences) and the angle between them after scaling
+   * T and P by the standard errors of the two equations (so the angle measures how strongly errors are amplified).
+   */
+  function intersectionGeometry(tId, pId, s, det, opt = {}) {
+    const hT = 1, hP = 0.05, o = opt.eqOpt, T0 = det.T_K, P0 = det.P_kbar;
+    const dTdP = (evaluate(tId, s, { P_kbar: P0 + hP, opt: o }) - evaluate(tId, s, { P_kbar: P0 - hP, opt: o })) / (2 * hP);
+    const dPdT = (evaluate(pId, s, { T_K: T0 + hT, opt: o }) - evaluate(pId, s, { T_K: T0 - hT, opt: o })) / (2 * hT);
+    const seT = seeOf(EQ[tId]), seP = seeOf(EQ[pId]);
+    const sT = seT && seT.abs ? seT.abs : 50, sP = seP ? (seP.abs || seP.rel * Math.abs(P0)) || 1 : 1;
+    // direction vectors in (T/sT, P/sP): thermometer (dTdP·dP, dP), barometer (dT, dPdT·dT)
+    const a = [dTdP / sT, 1 / sP], b = [1 / sT, dPdT / sP];
+    const cos = Math.abs(a[0] * b[0] + a[1] * b[1]) / (Math.hypot(...a) * Math.hypot(...b));
+    const angle = (Math.acos(Math.min(1, cos)) * 180) / Math.PI;
+    return { dTdP, dPdT, angle, scaleT: sT, scaleP: sP, condition: !Number.isFinite(angle) ? "undefined" : angle >= 30 ? "well-conditioned" : angle >= 15 ? "oblique" : "grazing" };
+  }
+
+  // ponytail: stoichiometric windows, not a full classifier; Fe3+-rich, altered or mixed analyses can be misassigned,
+  // and glass cannot always be told from amphibole or pyroxene by stoichiometry alone,
+  // which is why callers show the score and let the user override. Upgrade path: discriminant trained on a mineral database.
+  const CLASS_RULES = { // [basis O, checks [[fn, lo, hi]…], expected total range]
+    Grt: [12, [[(c) => c.Si, 2.85, 3.15], [(c) => c.Al + c.Cr, 1.7, 2.2], [(c) => c.Fe + c.Mg + c.Ca + c.Mn, 2.7, 3.2], [(c) => c.sum, 7.9, 8.1]], [98, 102]],
+    Cpx: [6, [[(c) => c.Si, 1.7, 2.05], [(c) => c.sum, 3.92, 4.08], [(c) => c.Ca, 0.25, 1.05], [(c) => c.Al - c.Na, -0.3, 0.4]], [98, 102]],
+    Opx: [6, [[(c) => c.Si, 1.75, 2.05], [(c) => c.sum, 3.92, 4.08], [(c) => c.Ca, 0, 0.25], [(c) => c.Fe + c.Mg, 1.5, 2.1]], [98, 102]],
+    Ol: [4, [[(c) => c.Si, 0.95, 1.05], [(c) => c.Fe + c.Mg + c.Mn, 1.9, 2.1], [(c) => c.sum, 2.95, 3.05]], [98, 102]],
+    Pl: [8, [[(c) => c.Si + c.Al, 3.9, 4.1], [(c) => c.Ca + c.Na + c.K, 0.85, 1.1], [(c) => c.K / (c.Ca + c.Na + c.K), 0, 0.5], [(c) => c.Fe + c.Mg, 0, 0.1]], [98, 102]],
+    Kfs: [8, [[(c) => c.Si + c.Al, 3.9, 4.1], [(c) => c.Ca + c.Na + c.K, 0.85, 1.1], [(c) => c.K / (c.Ca + c.Na + c.K), 0.5, 1], [(c) => c.Fe + c.Mg, 0, 0.1]], [98, 102]],
+    Bt: [11, [[(c) => c.Si, 2.5, 3.1], [(c) => c.K + c.Na, 0.7, 1.1], [(c) => c.Fe + c.Mg, 1.2, 3], [(c) => c.Ca, 0, 0.1]], [92, 98]],
+    Ms: [11, [[(c) => c.Si, 2.9, 3.6], [(c) => c.Al, 2.0, 3.1], [(c) => c.K + c.Na, 0.7, 1.1], [(c) => c.Fe + c.Mg, 0, 0.6]], [92, 97]],
+    Amp: [23, [[(c) => c.Si, 5.5, 8.0], [(c) => c.sum, 15.0, 16.2], [(c) => c.Ca + c.Na + c.K, 1.5, 3.2], [(c) => c.Fe + c.Mg, 3, 5.5], [(c) => c.Ca, 0, 2.1], [(c) => c.K, 0, 0.6]], [95, 98.8]],
+    Sp: [4, [[(c) => c.Si, 0, 0.15], [(c) => c.sum, 2.9, 3.15], [(c) => c.Ti, 0, 0.6]], [95, 102]],
+    Ilm: [3, [[(c) => c.Ti, 0.8, 1.1], [(c) => c.sum, 1.9, 2.1], [(c) => c.Si, 0, 0.05]], [95, 102]]
+  };
+  const CLASS_NAME = { Grt: "garnet", Cpx: "clinopyroxene", Opx: "orthopyroxene", Ol: "olivine", Pl: "plagioclase", Kfs: "alkali feldspar", Bt: "biotite", Ms: "muscovite", Amp: "amphibole", Sp: "spinel", Ilm: "ilmenite", Liq: "glass / whole rock" };
+  /**
+   * Guess the mineral from an oxide analysis. Each candidate is scored 0–1 by how well cations on its oxygen basis and the
+   * analytical total fit the windows above (1 inside a window, falling linearly to 0 half a window-width outside it, or 1 wt% for the total).
+   * Returns { phase, name, score, supported, ambiguous, candidates }. Falls back to Liq when nothing fits (score < 0.85).
+   */
+  function classifyMineral(comp) {
+    const total = MINERAL_OXIDES.reduce((a, o) => a + num(comp[o]), 0);
+    const fit = (v, lo, hi, w = Math.max((hi - lo) / 2, 0.05)) => { if (!Number.isFinite(v)) return 0; if (v >= lo && v <= hi) return 1; const d = v < lo ? lo - v : v - hi; return Math.max(0, 1 - d / w); };
+    const cands = [];
+    for (const [ph, [nOx, checks, tot]] of Object.entries(CLASS_RULES)) {
+      let c;
+      try { c = cationsPerOxygen(comp, nOx); } catch (e) { continue; }
+      const parts = checks.map(([f, lo, hi]) => fit(f(c), lo, hi)).concat(fit(total, tot[0], tot[1], 1));
+      cands.push({ phase: ph, score: Math.min(...parts) * 0.5 + (parts.reduce((a, b) => a + b, 0) / parts.length) * 0.5 });
+    }
+    cands.sort((a, b) => b.score - a.score);
+    const best = cands[0] && cands[0].score >= 0.85 ? cands[0] : { phase: "Liq", score: cands[0] ? 1 - cands[0].score : 0 };
+    return { phase: best.phase, name: CLASS_NAME[best.phase], score: best.score, total, supported: !!PHASE_MODEL[best.phase],
+      ambiguous: !!(best.phase !== "Liq" && cands[1] && cands[0].score - cands[1].score < 0.1), candidates: cands.slice(0, 3) };
+  }
+
+  const TOTAL_OK = { Bt: [92, 98], Amp: [95, 99.5], Liq: [0, 102] }; // others 98.5–101.5
+  const sampleTotal = (c) => MINERAL_OXIDES.concat(["P2O5", "H2O"]).reduce((a, o) => a + num(c[o]), 0);
+  const totalOk = (ph, c) => { const t = sampleTotal(c), r = TOTAL_OK[ph] || [98.5, 101.5]; return t >= r[0] && t <= r[1]; };
+  /**
+   * Rank the equations that can be evaluated for a sample. A transparent heuristic, not a substitute for petrography:
+   *   phases present and result physically plausible  25
+   *   calibration domain: inside 30, marginal 15, outside 0, no domain data 15 (not assessed)  30
+   *   analytical totals of the phases used (10) and Fe–Mg equilibrium tests involving them (10)  20
+   *   published SEE: thermometers 15 at ≤ 25 °C to 0 at ≥ 75 °C; barometers 15 at ≤ 1 kbar to 0 at ≥ 4 kbar  15
+   * Single equations are scaled from 90 to 100. Pairs: mean of the two, plus up to 10 for the intersection angle (≥ 60° full).
+   * opt: { P_kbar, T_K (conditions for single equations), eqOpt, Pmin, Pmax, restricted }
+   */
+  function recommendModels(sample, opt = {}) {
+    const s = prepare(sample), tests = equilibriumTests(s), cond = { P_kbar: opt.P_kbar ?? 0, T_K: opt.T_K ?? 273.15, opt: opt.eqOpt };
+    const lin = (v, best, worst) => Math.max(0, Math.min(1, (worst - v) / (worst - best)));
+    const single = [];
+    for (const e of EQUATIONS) {
+      if (!phasesPresent(sample, e) || (e.restricted && !opt.restricted)) continue;
+      let v;
+      try { v = evaluate(e.id, s, cond); } catch (err) { continue; }
+      if (!plausible(e.id, v)) continue;
+      const why = [], phs = SYSTEMS[e.system].phases.filter((p) => p !== "Trace");
+      const a = applicability(e.id, sample);
+      const dom = !a ? 15 : a.status === "inside" ? 30 : a.status === "marginal" ? 15 : 0;
+      why.push(!a ? "· calibration domain not assessed (no calibration data distributed for this equation)" : `${a.status === "inside" ? "✓" : "⚠"} ${a.status} the calibration data (D² = ${a.d2.toFixed(1)}, 95th percentile ${a.p95.toFixed(1)})`);
+      const badTot = phs.filter((p) => !totalOk(p, sample[p]));
+      why.push(badTot.length ? `⚠ analytical total outside the usual range: ${badTot.join(", ")}` : "✓ analytical totals in the usual range");
+      const rel = tests.filter((t) => { const [x, y] = t.name.split(" ")[0].toLowerCase().split("–"); const has = (n) => phs.some((p) => p.toLowerCase() === n); return has(x) && has(y); });
+      const failed = rel.filter((t) => !t.pass);
+      if (rel.length) why.push(failed.length ? `⚠ fails ${failed.map((t) => t.name).join("; ")}` : "✓ passes the Fe–Mg equilibrium test");
+      const se = seeOf(e), seAbs = se ? (se.abs ?? se.rel * Math.abs(v)) : NaN;
+      const prec = !Number.isFinite(seAbs) ? 5 : e.kind === "T" ? 15 * lin(seAbs, 25, 75) : e.kind === "P" ? 15 * lin(seAbs, 1, 4) : 10;
+      if (e.system === "liq_only") why.push("⚠ assumes the melt was saturated in the phase concerned");
+      why.push(`· calibrated for: ${e.range}`);
+      const health = (badTot.length ? 0 : 10) + (failed.length ? 0 : 10), raw = 25 + dom + health + prec;
+      single.push({ id: e.id, kind: e.kind, value: v, see: e.see, raw, score: Math.round((raw / 90) * 100), parts: { phases: 25, domain: dom, health, precision: +prec.toFixed(1) }, why });
+    }
+    const by = (k) => single.filter((x) => x.kind === k).sort((a, b) => b.score - a.score);
+    const Ts = by("T"), Ps = by("P"), pairs = [];
+    for (const t of Ts) for (const p of Ps) {
+      let r, g;
+      try { r = solvePT(t.id, p.id, s, opt); } catch (err) { continue; }
+      if (!r.converged || !plausible(t.id, r.T_K) || !plausible(p.id, r.P_kbar)) continue;
+      try { g = intersectionGeometry(t.id, p.id, s, r, opt); } catch (err) { continue; }
+      const geo = Number.isFinite(g.angle) ? 10 * Math.min(1, g.angle / 60) : 0;
+      pairs.push({ T: t.id, P: p.id, T_C: r.T_K - 273.15, P_kbar: r.P_kbar, angle: g.angle, condition: g.condition, score: Math.round((t.raw + p.raw) / 2 + geo),
+        why: [`${g.condition === "well-conditioned" ? "✓" : "⚠"} ${g.condition} intersection (${fx(g.angle)}° in SEE-scaled P–T space)`].concat([...new Set(t.why.concat(p.why).filter((w) => w[0] !== "·"))]) });
+    }
+    pairs.sort((a, b) => b.score - a.score);
+    return { thermometers: Ts, barometers: Ps, others: single.filter((x) => x.kind !== "T" && x.kind !== "P"), pairs };
+  }
+  const fx = (v) => (Number.isFinite(v) ? v.toFixed(0) : "—");
+
   return {
     VERSION, OX, ATOMIC_WEIGHT, MINERAL_OXIDES, LIQUID_OXIDES, SYSTEMS, EQUATIONS, EQ, MINERAL_BASIS,
     cationsPerOxygen, cationFractions, droopRecalc, structuralFormula,
     phases: { garnet, biotite, clinopyroxene, orthopyroxene, feldspar, olivine, spinel, liquid },
     DEPTH_MODELS, pressureToDepth, applicability, ensemblePT, seeOf, plausible, PLAUSIBLE, DOMAINS: () => DOMAINS,
-    prepare, evaluate, equilibriumTests, solvePT, monteCarloPT, perturbSample, mulberry32, stats
+    prepare, evaluate, equilibriumTests, solvePT, monteCarloPT, perturbSample, mulberry32, stats,
+    intersectionGeometry, classifyMineral, recommendModels, phasesPresent, totalOk
   };
 });

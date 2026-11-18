@@ -124,6 +124,16 @@
             <div><h3><b>3</b>Read and combine</h3><p>Every published equation for that system is listed with its error. For a single P–T point, go to <em>P–T &amp; Monte Carlo</em>.</p></div>
             <div class="guide-actions"><button id="guideExample" class="btn btn-primary btn-sm">Try an example</button><button id="guideDismiss" class="btn btn-ghost btn-sm">Got it</button></div>
           </div>
+          <details class="panel advisor" id="advisor">
+            <summary><span class="panel-title">Advisor: which equations suit my minerals?</span><span class="form-hint">Tick minerals to see what they allow, or rank the equations for the analyses entered</span></summary>
+            <div class="chip-grid" id="advChips" role="group" aria-label="Minerals analysed"></div>
+            <div class="adv-systems" id="advSystems"></div>
+            <div class="action-buttons-group">
+              <button id="advRunBtn" class="btn btn-primary btn-sm" type="button"><span>Rank equations for the entered analyses</span></button>
+              <button id="advSyncBtn" class="btn btn-ghost btn-sm" type="button"><span>Tick the minerals I entered</span></button>
+            </div>
+            <div id="advOut"></div>
+          </details>
           <div class="stat-strip" id="calcStats"></div>
           <div class="grid-2col grid-split">
             <div class="panel">
@@ -171,6 +181,16 @@
                   <div id="componentSummary" class="form-hint"></div>
                 </div>
               </div>
+              <div class="report-card">
+                <h3 class="section-heading">Interpretation report</h3>
+                <p class="form-hint">Explains the result in words: compositions and stoichiometry, the equations and their limits, sources of error. Solve a pair in the P–T tab first to include depth, uncertainty budget and the diagram.</p>
+                <div class="action-buttons-group">
+                  <button type="button" class="btn btn-sm btn-secondary" data-report="view"><span>View report</span></button>
+                  <button type="button" class="btn btn-sm btn-ghost" data-report="md"><span>Download Markdown</span></button>
+                  <button type="button" class="btn btn-sm btn-ghost" data-report="pdf"><span>Print / save as PDF</span></button>
+                </div>
+                <div class="report-preview report-body" hidden></div>
+              </div>
             </div>
           </div>
         </section>
@@ -204,6 +224,16 @@
               </div>
               <button id="runPtBtn" class="btn btn-primary btn-block btn-lg"><svg class="ico"><use href="#i-play"/></svg><span>Solve P–T</span></button>
               <div class="convergence-card" id="ptSummary"></div>
+              <div class="report-card">
+                <h3 class="section-heading">Interpretation report</h3>
+                <p class="form-hint">Written from the solution above: geological meaning, error budget (analytical against calibration), intersection geometry, comparison with other equations, and the diagram.</p>
+                <div class="action-buttons-group">
+                  <button type="button" class="btn btn-sm btn-secondary" data-report="view"><span>View report</span></button>
+                  <button type="button" class="btn btn-sm btn-ghost" data-report="md"><span>Download Markdown</span></button>
+                  <button type="button" class="btn btn-sm btn-ghost" data-report="pdf"><span>Print / save as PDF</span></button>
+                </div>
+                <div class="report-preview report-body" hidden></div>
+              </div>
 
               <div class="divider"></div>
               <h3 class="section-heading">Model-choice uncertainty</h3>
@@ -216,9 +246,14 @@
             <div class="panel panel-sticky">
               <div class="panel-header">
                 <h2 class="panel-title">P–T diagram</h2>
-                <button id="exportPngBtn" class="btn btn-sm btn-ghost"><svg class="ico"><use href="#i-image"/></svg><span>Export PNG</span></button>
+                <div class="action-buttons-group">
+                  <button id="exportPngBtn" class="btn btn-sm btn-ghost"><svg class="ico"><use href="#i-image"/></svg><span>Export PNG</span></button>
+                  <button id="exportSvgBtn" class="btn btn-sm btn-ghost"><svg class="ico"><use href="#i-image"/></svg><span>Export SVG</span></button>
+                </div>
               </div>
+              <label class="switch"><input type="checkbox" id="ptGeotherms"><span class="switch-track"></span>Show reference gradients (10, 20, 35 °C/km for the density of the depth model)</label>
               <div class="canvas-wrapper"><canvas id="ptCanvas" width="1400" height="1040" aria-label="P–T diagram"></canvas></div>
+              <p class="form-hint pt-readout" id="ptReadout" aria-live="off"></p>
               <div class="legend-container">
                 <span class="legend-item"><span class="legend-line kind-T"></span>Thermometer T(P)</span>
                 <span class="legend-item"><span class="legend-line kind-P"></span>Barometer P(T)</span>
@@ -255,17 +290,19 @@
             <div class="panel-header">
               <h2 class="panel-title">Batch processing</h2>
               <div class="action-buttons-group">
+                <button id="batchPasteBtn" class="btn btn-sm btn-ghost" type="button"><span>Paste table</span></button>
                 <button id="batchTemplateBtn" class="btn btn-sm btn-ghost"><svg class="ico"><use href="#i-down"/></svg><span>Download template</span></button>
                 <button id="batchExportBtn" class="btn btn-sm btn-success" disabled><svg class="ico"><use href="#i-table"/></svg><span>Export results</span></button>
               </div>
             </div>
             <p class="panel-desc">One row per sample. Columns are named <code>Phase_Oxide</code> (e.g. <code>Grt_FeOt</code>, <code>Liq_H2O</code>, <code>Trace_Ti_zrc</code>) plus <code>Sample</code>, <code>P_kbar</code> and <code>T_C</code>. Unrecognised columns are listed, not guessed. Every equation whose phases are present is evaluated.</p>
-            <div class="dropzone" id="csvDropzone" tabindex="0" role="button" aria-label="Choose a CSV file">
+            <div class="dropzone" id="csvDropzone" tabindex="0" role="button" aria-label="Choose a CSV or Excel file">
               <svg class="dropzone-icon"><use href="#i-cloud"/></svg>
-              <p class="dropzone-text">Drop a CSV file here or <span class="browse-link">click to choose</span></p>
-              <p class="form-hint">Comma, semicolon or tab separated · processed locally</p>
-              <input type="file" id="csvFileInput" accept=".csv,.txt" hidden>
+              <p class="dropzone-text">Drop a CSV or Excel (.xlsx) file here or <span class="browse-link">click to choose</span></p>
+              <p class="form-hint">Comma, semicolon or tab separated text, or the first sheet of an .xlsx workbook · processed locally. A table with one analysis per row (oxide columns, optionally <code>Phase</code> and <code>Sample</code>) is also accepted: you confirm the phase of each row first.</p>
+              <input type="file" id="csvFileInput" accept=".csv,.txt,.tsv,.xlsx" hidden>
             </div>
+            <div id="batchPreview" class="batch-preview" hidden></div>
             <div id="batchStatus" class="alert-box alert-info" hidden></div>
             <div class="table-responsive table-scroll"><table class="data-table" id="batchTable"><thead></thead><tbody></tbody></table></div>
           </div>
@@ -411,9 +448,11 @@
     </div>
   </dialog>
 
+  <div id="printReport" class="report-body"></div>
   <div id="toastNotification" class="toast-notification" role="status" aria-live="polite"></div>
   <script src="lithopt-domains.js"></script>
   <script src="lithopt-core.js"></script>
+  <script src="lithopt-report.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

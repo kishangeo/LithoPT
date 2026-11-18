@@ -180,8 +180,19 @@
         });
         grid.appendChild(el("div", { class: "form-group" }, [fieldLabel(f), inp]));
       }
-      const sum = el("span", { class: "badge", id: `sum_${ph}` });
-      const head = el("div", { class: "diag-header" }, [el("span", { class: "phase-tag" }, [el("span", { class: "phase-abbr", text: ph }), el("strong", { text: PHASE_LABEL[ph] })]), sum]);
+      const sum = el("span", { class: "badge", id: `sum_${ph}`, title: "Analytical total, wt%" });
+      const catB = L.MINERAL_BASIS[PHASE_LABEL[ph]] ? el("span", { class: "badge", id: `cat_${ph}`, title: "Cations per formula unit with all Fe as Fe2+" }) : null;
+      const paste = el("button", { type: "button", class: "btn btn-ghost btn-sm paste-btn", title: "Paste oxide values copied from a spreadsheet: a header row and a value row, name/value pairs, or numbers in the order of the fields", "aria-label": `Paste ${PHASE_LABEL[ph]} analysis` }, [el("span", { text: "Paste" })]);
+      paste.addEventListener("click", () => {
+        const use = (text) => {
+          const got = parseOxidePaste(text || "", fields), keys = Object.keys(got).filter((f) => fields.includes(f));
+          if (!keys.length) { toast("No oxide values were recognised in the pasted text"); return; }
+          for (const f of keys) state.sample[ph][f] = got[f];
+          renderPhaseInputs(); toast(`${keys.length} values pasted into ${PHASE_LABEL[ph]}`);
+        };
+        (navigator.clipboard && navigator.clipboard.readText ? navigator.clipboard.readText() : Promise.reject()).then(use, () => use(prompt("Paste the analysis here:")));
+      });
+      const head = el("div", { class: "diag-header" }, [el("span", { class: "phase-tag" }, [el("span", { class: "phase-abbr", text: ph }), el("strong", { text: PHASE_LABEL[ph] })]), el("span", { class: "head-badges" }, [catB, sum, ph === "Trace" ? null : paste])]);
       const meter = ph === "Trace" ? null : el("div", { class: "sum-meter", id: `meter_${ph}` }, [el("span")]);
       box.appendChild(el("div", { class: "card-highlight" }, [head, meter, grid]));
     }
@@ -196,8 +207,14 @@
       if (ph === "Trace") continue;
       const total = L.MINERAL_OXIDES.concat(ph === "Liq" ? ["P2O5", "H2O"] : []).reduce((a, o) => a + (state.sample[ph]?.[o] || 0), 0);
       const b = $(`sum_${ph}`);
-      const ok = total >= 98.5 && total <= 101.5;
-      if (b) { b.textContent = `Σ ${total.toFixed(2)}`; b.className = "badge " + (ok ? "badge-success" : total > 0 ? "badge-warning" : ""); }
+      const ok = total > 0 && L.totalOk(ph, state.sample[ph] || {}); // hydrous phases have their own usual range
+      if (b) { b.textContent = `Σ ${total.toFixed(2)}`; b.className = "badge " + (ok ? "badge-success" : total >= 97 && total <= 102 ? "badge-warning" : total > 0 ? "badge-danger" : ""); }
+      const cb = $(`cat_${ph}`), basis = L.MINERAL_BASIS[PHASE_LABEL[ph]];
+      if (cb) {
+        let sf = null; try { sf = total > 0 ? L.structuralFormula(PHASE_LABEL[ph], state.sample[ph]) : null; } catch (e) { sf = null; }
+        cb.textContent = sf ? `Σcat ${sf.observedSum.toFixed(3)} / ${basis.nOx} O` : "";
+        cb.className = "badge " + (!sf || !basis.nCat ? "" : Math.abs(sf.observedSum - basis.nCat) <= 0.03 ? "badge-success" : "badge-warning");
+      }
       const m = $(`meter_${ph}`);
       if (m) { m.className = "sum-meter " + (ok ? "ok" : total > 0 ? "warn" : ""); m.firstChild.style.width = `${Math.min(100, total)}%`; }
     }
@@ -276,7 +293,11 @@
     for (const [id, kind] of [["ptThermo", "T"], ["ptBaro", "P"]]) {
       const sel = $(id), keep = sel.value;
       sel.textContent = "";
-      for (const e of L.EQUATIONS.filter((x) => x.kind === kind && eqAvailable(x))) sel.appendChild(el("option", { value: e.id, text: `${L.SYSTEMS[e.system].name}: ${e.name}` }));
+      const groups = new Map();
+      for (const e of L.EQUATIONS.filter((x) => x.kind === kind && eqAvailable(x))) {
+        if (!groups.has(e.system)) groups.set(e.system, sel.appendChild(el("optgroup", { label: L.SYSTEMS[e.system].name })));
+        groups.get(e.system).appendChild(el("option", { value: e.id, text: `${e.name} (${e.see})` }));
+      }
       if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
     }
   }
@@ -294,7 +315,7 @@
     const mc = det.converged ? L.monteCarloPT(tId, pId, sampleWithOpt, Object.assign({}, opt, {
       N: Math.max(100, readNum("mcN") || 1000), rel: (readNum("mcRel") ?? 2) / 100, floor: readNum("mcFloor") ?? 0.02, seed: readNum("mcSeed") ?? 42,
       calibration: $("mcCal").checked })) : null;
-    lastPt = { tId, pId, det, mc, opt };
+    lastPt = { tId, pId, det, mc, opt, sig: sig() };
     const row = (k, v) => box.appendChild(el("div", { class: "conv-item" }, [el("span", { class: "conv-lbl", text: k }), el("span", { class: "conv-val", text: v })]));
     if (!det.converged) { row("Status", `No solution: ${det.reason}`); drawPt(); return; }
     const eT = L.EQ[tId], eP = L.EQ[pId];
@@ -318,6 +339,10 @@
       row("Draws solved", `${mc.points.length} / ${mc.N}${mc.failed ? ` (${mc.failed} without intersection)` : ""}`);
     }
     row($("mcCal").checked ? "Calibration SEE (included above)" : "Calibration SEE (not included above)", `${eT.see}; ${eP.see}`);
+    try {
+      const g = L.intersectionGeometry(tId, pId, prepared(), det, opt);
+      row("Intersection", `${g.condition}: curves cross at ${fmt(g.angle, 0)}° (T and P scaled by the two SEEs)${g.condition === "well-conditioned" ? "" : " — small errors move the solution a long way"}`);
+    } catch (e) { /* slopes undefined at the edge of an equation's range */ }
     for (const e of [eT, eP]) { const a = L.applicability(e.id, state.sample); if (a) row(`Calibration domain, ${e.name}`, `${a.status} (D² = ${a.d2.toFixed(1)}; 99th pct. ${a.p99.toFixed(1)})`); }
     animatePt();
   }
@@ -328,7 +353,7 @@
     box.textContent = "";
     const systems = [...$("ensSystems").selectedOptions].map((o) => o.value);
     const res = L.ensemblePT(Object.assign({}, state.sample, { cpxFe2: state.opt.cpxFe2 }), { systems: systems.length ? systems : undefined, restricted: $("ensRestricted").checked, Pmin: readNum("ptPmin") ?? 0, Pmax: readNum("ptPmax") ?? 70, eqOpt: state.opt });
-    lastEns = res;
+    lastEns = res; res.sig = sig();
     const row = (k, v) => box.appendChild(el("div", { class: "conv-item" }, [el("span", { class: "conv-lbl", text: k }), el("span", { class: "conv-val", text: v })]));
     row("Pairs solved", `${res.nSolved} of ${res.pairs.length}`);
     if (res.summary) {
@@ -358,10 +383,12 @@
   }
 
   const PT_SCALE = 2; // canvas is 1400×1040 device pixels for a 700×520 drawing: crisp on HiDPI and in exported PNGs
-  function drawPt(k = 1) {
-    const cv = $("ptCanvas"), ctx = cv.getContext("2d"), W = cv.width / PT_SCALE, H = cv.height / PT_SCALE;
+  let ptAxes = null; // plot geometry of the last drawing, for the pointer read-out
+  function drawPt(k = 1, target, light) {
+    const cv = $("ptCanvas"), ctx = target || cv.getContext("2d"), W = cv.width / PT_SCALE, H = cv.height / PT_SCALE;
     ctx.setTransform(PT_SCALE, 0, 0, PT_SCALE, 0, 0);
-    const dark = isDark();
+    const dark = !light && isDark();
+    ptAxes = null;
     const C = dark
       ? { bg: "#1c1c1a", plot: "#20201e", fg: "#ecebe7", mute: "#9a9891", grid: "#333330", T: "#f08a4b", P: "#7aa2f7", mc: "rgba(190,188,180,0.32)", ell: "#ecebe7" }
       : { bg: "#ffffff", plot: "#faf9f7", fg: "#1d1c1a", mute: "#6b6963", grid: "#e3e1db", T: "#c2410c", P: "#1d4ed8", mc: "rgba(90,88,82,0.24)", ell: "#1d1c1a" };
@@ -381,6 +408,7 @@
     const y0 = Math.max(opt.Pmin, Pc - Math.max(5, 5 * sdP)), y1 = Math.min(opt.Pmax, Pc + Math.max(5, 5 * sdP));
     const m = { l: 68, r: 22, t: 22, b: 58 };
     const X = (t) => m.l + ((t - x0) / (x1 - x0)) * (W - m.l - m.r), Y = (p) => H - m.b - ((p - y0) / (y1 - y0)) * (H - m.t - m.b);
+    ptAxes = { x0, x1, y0, y1, m, W, H };
     ctx.fillStyle = C.plot; ctx.fillRect(m.l, m.t, W - m.l - m.r, H - m.t - m.b);
     ctx.strokeStyle = C.grid; ctx.fillStyle = C.mute; ctx.font = `13px ${FONT}`; ctx.lineWidth = 1;
     for (let i = 0; i <= 5; i++) {
@@ -397,6 +425,16 @@
     ctx.save(); ctx.beginPath(); ctx.rect(m.l, m.t, W - m.l - m.r, H - m.t - m.b); ctx.clip();
     const curve = (pts, color) => { ctx.strokeStyle = color; ctx.lineWidth = 2.4; ctx.lineCap = "round"; ctx.beginPath(); let st = false;
       for (const [t, p] of pts) { if (!Number.isFinite(t) || !Number.isFinite(p)) { st = false; continue; } st ? ctx.lineTo(X(t), Y(p)) : ctx.moveTo(X(t), Y(p)); st = true; } ctx.stroke(); };
+    if ($("ptGeotherms").checked) { // straight reference gradients from a 0 °C surface, for the density of the depth model
+      const kbarPerKm = ((readNum("depthRho") || 2700) * 9.81) / 1e5;
+      ctx.font = `11px ${FONT}`; ctx.lineWidth = 1; ctx.setLineDash([2, 4]);
+      for (const G of [10, 20, 35]) {
+        const slope = kbarPerKm / G, tB = Math.min(x1, y1 / slope);
+        ctx.strokeStyle = C.mute; ctx.beginPath(); ctx.moveTo(X(x0), Y(slope * x0)); ctx.lineTo(X(x1), Y(slope * x1)); ctx.stroke();
+        if (tB > x0 && slope * tB > y0) { ctx.fillStyle = C.mute; ctx.textAlign = "right"; ctx.fillText(`${G} °C/km`, X(tB) - 6, Y(slope * tB) + 14); ctx.textAlign = "left"; }
+      }
+      ctx.setLineDash([]);
+    }
     const n = 80, cond = { opt: state.opt }, nk = Math.max(1, Math.round(n * k));
     curve([...Array(nk + 1)].map((_, i) => { const p = y0 + ((y1 - y0) * i) / n; return [L.evaluate(tId, s, Object.assign({ P_kbar: p }, cond)) - 273.15, p]; }), C.T);
     curve([...Array(nk + 1)].map((_, i) => { const t = x0 + ((x1 - x0) * i) / n; return [t, L.evaluate(pId, s, Object.assign({ T_K: t + 273.15 }, cond))]; }), C.P);
@@ -476,7 +514,7 @@
   }
 
   // ------------------------------------------------------------------ batch
-  let batchRows = [];
+  let batchRows = [], batchSamples = [];
   function initBatch() {
     const dz = $("csvDropzone"), fi = $("csvFileInput");
     dz.addEventListener("click", () => fi.click());
@@ -517,7 +555,10 @@
   }
   function readFile(file) {
     const rd = new FileReader();
-    rd.onload = () => runBatch(parseCsv(String(rd.result)));
+    if (file.size > 20e6) { toast("The file is larger than 20 MB."); return; }
+    if (/\.xls$/i.test(file.name)) { toast("Legacy .xls files are not read: save the sheet as .xlsx or .csv."); return; }
+    if (/\.xlsx$/i.test(file.name)) { file.arrayBuffer().then(readXlsx).then(ingest).catch((e) => toast("Could not read the workbook: " + e.message)); return; }
+    rd.onload = () => ingest(parseCsv(String(rd.result)));
     rd.readAsText(file);
   }
   function runBatch(rows) {
@@ -531,7 +572,7 @@
       if (phases.includes(ph) && PHASE_FIELDS(ph).includes(f)) { known.push(h); return { ph, f }; }
       unknown.push(h); return null;
     });
-    batchRows = [];
+    batchRows = []; batchSamples = [];
     for (const r of rows.slice(1)) {
       const sample = {}, meta = { Sample: "", P_kbar: 0, T_C: 0 }, bad = [];
       map.forEach((m, i) => {
@@ -543,6 +584,7 @@
         if (v !== "") (sample[m.ph] = sample[m.ph] || (m.ph === "Trace" ? Object.assign({}, TRACE_DEFAULTS) : {}))[m.f] = x;
       });
       const out = { Sample: meta.Sample, P_kbar: meta.P_kbar, T_C: meta.T_C };
+      batchSamples.push(bad.length ? null : { name: meta.Sample, P: meta.P_kbar, T: meta.T_C, sample });
       if (bad.length) { out.Error = `non-numeric value in ${bad.join(", ")}; row skipped`; batchRows.push(out); continue; }
       let s;
       try { s = L.prepare(sample); } catch (e) { out.Error = e.message; batchRows.push(out); continue; }
@@ -559,15 +601,269 @@
     const st = $("batchStatus");
     st.hidden = false;
     const missingCond = ["P_kbar", "T_C"].filter((k) => !head.includes(k));
-    st.textContent = `${batchRows.length} samples processed. Recognised columns: ${known.length}. Ignored columns: ${unknown.length ? unknown.join(", ") : "none"}.` +
+    st.textContent = `${batchRows.length} samples processed (click a sample name to open it in the calculator). Recognised columns: ${known.length}. Ignored columns: ${unknown.length ? unknown.join(", ") : "none"}.` +
       (missingCond.length ? ` Warning: no ${missingCond.join(" or ")} column — thermometers were evaluated at 0 kbar and barometers at 0 °C; add the column(s) to use real conditions.` : "") +
       " Physically implausible values are left blank.";
     const cols = [...new Set(batchRows.flatMap((r) => Object.keys(r)))];
     const thead = $("batchTable").tHead, tbody = $("batchTable").tBodies[0];
     thead.textContent = ""; tbody.textContent = "";
     thead.appendChild(el("tr", {}, cols.map((c) => el("th", { text: c }))));
-    for (const r of batchRows) tbody.appendChild(el("tr", {}, cols.map((c) => el("td", { text: String(r[c] ?? "") }))));
+    batchRows.forEach((r, i) => tbody.appendChild(el("tr", {}, cols.map((c) => {
+      if (c !== "Sample" || !batchSamples[i]) return el("td", { text: String(r[c] ?? "") });
+      const b = el("button", { type: "button", class: "link-btn", title: "Open this sample in the calculator", text: String(r[c] || "open") });
+      b.addEventListener("click", () => openBatchSample(i));
+      return el("td", {}, [b]);
+    }))));
     $("batchExportBtn").disabled = batchRows.length === 0;
+  }
+
+
+  // ------------------------------------------------------------------ shared helpers for import and paste
+  const PT_HINT = "Move the pointer over the diagram to read T, P and depth.";
+  const sig = () => JSON.stringify([state.sample, state.opt]); // lets results be recognised as stale after the inputs change
+  /** Column or row label → field key (SiO2, FeOt, …) or null. Fe2O3 is returned as "Fe2O3" and converted by the caller. */
+  function oxKey(h) {
+    const t = String(h).trim().replace(/\s*\(?wt\.?\s*%\)?$/i, "").replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080));
+    if (/^fe2o3/i.test(t)) return "Fe2O3";
+    if (/^feo/i.test(t)) return "FeOt";
+    return L.LIQUID_OXIDES.concat(["H2O"]).find((o) => o.toLowerCase() === t.toLowerCase()) || null;
+  }
+  const FE2O3_TO_FEO = (2 * L.OX.FeOt.mw) / (2 * L.ATOMIC_WEIGHT.Fe + 3 * L.ATOMIC_WEIGHT.O);
+  const PHASE_ALIAS = [[/^(grt|gt|garnet)/, "Grt"], [/^(bt|bio)/, "Bt"], [/^(cpx|clinopyrox|omph|diop|aug)/, "Cpx"], [/^(kfs|k-?feld|alkali|san|orthoclase)/, "Kfs"],
+    [/^(opx|orthopyrox|enst)/, "Opx"], [/^(ol|olivine)/, "Ol"], [/^(pl|plag)/, "Pl"], [/^(amp|amph|hbl|hornbl)/, "Amp"], [/^(sp|spl|spinel|chr)/, "Sp"], [/^(liq|melt|glass|gl$|wr|whole)/, "Liq"]];
+  const phaseCode = (name) => { const t = String(name).trim().toLowerCase(); const m = PHASE_ALIAS.find(([re]) => re.test(t)); return m ? m[1] : null; };
+  /** Pasted text → {field: value}. Accepts a header row + value row, name/value pairs in rows, or bare numbers in field order. */
+  function parseOxidePaste(text, fields) {
+    const sep = /\t|;/.test(text) ? /\t|;/ : /,|\s+/; // a decimal comma is only possible with tab- or semicolon-separated cells
+    const rows = text.trim().split(/\r?\n/).map((l) => l.trim().split(sep).map((c) => c.trim()).filter((c) => c !== "")).filter((r) => r.length);
+    const out = {}, put = (k, v) => { const x = Number(String(v).replace(",", ".")); if (k && Number.isFinite(x) && x >= 0) out[k === "Fe2O3" ? "FeOt" : k] = +(k === "Fe2O3" ? x * FE2O3_TO_FEO : x).toFixed(4); };
+    if (!rows.length) return out;
+    if (rows.length >= 2 && rows[0].some((c) => oxKey(c))) rows[0].forEach((h, i) => put(oxKey(h), rows[1][i]));
+    else if (rows.every((r) => r.length >= 2 && oxKey(r[0]))) rows.forEach((r) => put(oxKey(r[0]), r[1]));
+    else rows.flat().forEach((v, i) => put(fields[i], v));
+    return out;
+  }
+
+  // ------------------------------------------------------------------ vector export: records the canvas calls of drawPt as SVG
+  function svgContext(W, H, measure) {
+    const out = [], stack = []; let path = "", open = 0, dash = "";
+    const n = (v) => +(+v).toFixed(2), esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    const paint = (attr, col) => { const m = String(col).match(/^rgba\(([^,]+),([^,]+),([^,]+),([^)]+)\)$/); return m ? `${attr}="rgb(${m[1].trim()},${m[2].trim()},${m[3].trim()})" ${attr}-opacity="${m[4].trim()}"` : `${attr}="${col}"`; };
+    const alpha = () => (c.globalAlpha < 1 ? ` opacity="${n(c.globalAlpha)}"` : "");
+    const c = {
+      fillStyle: "#000", strokeStyle: "#000", lineWidth: 1, font: "13px sans-serif", textAlign: "left", globalAlpha: 1, lineCap: "butt",
+      setTransform() {}, save() { stack.push(open); }, restore() { const to = stack.pop() || 0; while (open > to) { out.push("</g>"); open--; } },
+      translate(x, y) { out.push(`<g transform="translate(${n(x)} ${n(y)})">`); open++; }, rotate(a) { out.push(`<g transform="rotate(${n((a * 180) / Math.PI)})">`); open++; },
+      beginPath() { path = ""; }, moveTo(x, y) { path += `M${n(x)} ${n(y)}`; }, lineTo(x, y) { path += `L${n(x)} ${n(y)}`; }, closePath() { path += "Z"; },
+      rect(x, y, w, h) { path += `M${n(x)} ${n(y)}h${n(w)}v${n(h)}h${n(-w)}Z`; }, roundRect(x, y, w, h) { c.rect(x, y, w, h); },
+      arc(x, y, r) { path += `M${n(x - r)} ${n(y)}a${n(r)} ${n(r)} 0 1 0 ${n(2 * r)} 0a${n(r)} ${n(r)} 0 1 0 ${n(-2 * r)} 0Z`; }, // full circles only
+      clip() { const id = `clip${out.length}`; out.push(`<clipPath id="${id}"><path d="${path}"/></clipPath><g clip-path="url(#${id})">`); open++; },
+      fill() { out.push(`<path d="${path}" ${paint("fill", c.fillStyle)}${alpha()}/>`); },
+      stroke() { out.push(`<path d="${path}" fill="none" ${paint("stroke", c.strokeStyle)} stroke-width="${c.lineWidth}" stroke-linecap="${c.lineCap}"${dash ? ` stroke-dasharray="${dash}"` : ""}${alpha()}/>`); },
+      fillRect(x, y, w, h) { out.push(`<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" ${paint("fill", c.fillStyle)}/>`); },
+      setLineDash(a) { dash = a.join(" "); },
+      fillText(t, x, y) { const m = c.font.match(/(?:(\d{3})\s+)?(\d+)px/) || [];
+        out.push(`<text x="${n(x)}" y="${n(y)}" font-size="${m[2] || 13}"${m[1] ? ` font-weight="${m[1]}"` : ""} text-anchor="${{ left: "start", center: "middle", right: "end" }[c.textAlign]}" ${paint("fill", c.fillStyle)}>${esc(t)}</text>`); },
+      measureText(t) { measure.font = c.font; return measure.measureText(t); }
+    };
+    return { ctx: c, svg: () => { while (open > 0) { out.push("</g>"); open--; } return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="Segoe UI, Helvetica, Arial, sans-serif">${out.join("\n")}</svg>\n`; } };
+  }
+  function initDiagramTools() {
+    const cv = $("ptCanvas"), ro = $("ptReadout");
+    ro.textContent = PT_HINT;
+    $("ptGeotherms").addEventListener("change", () => drawPt());
+    $("exportSvgBtn").addEventListener("click", () => {
+      const W = cv.width / PT_SCALE, H = cv.height / PT_SCALE, rec = svgContext(W, H, cv.getContext("2d"));
+      drawPt(1, rec.ctx, true); // light colours: figures are printed
+      drawPt();
+      download("LithoPT_PT.svg", rec.svg(), "image/svg+xml");
+    });
+    cv.addEventListener("mousemove", (ev) => {
+      const a = ptAxes, r = cv.getBoundingClientRect();
+      if (!a) { ro.textContent = PT_HINT; return; }
+      const x = ((ev.clientX - r.left) / r.width) * a.W, y = ((ev.clientY - r.top) / r.height) * a.H;
+      const t = a.x0 + ((x - a.m.l) / (a.W - a.m.l - a.m.r)) * (a.x1 - a.x0), p = a.y0 + ((a.H - a.m.b - y) / (a.H - a.m.t - a.m.b)) * (a.y1 - a.y0);
+      if (t < a.x0 || t > a.x1 || p < a.y0 || p > a.y1) { ro.textContent = PT_HINT; return; }
+      const rho = readNum("depthRho") || 2700;
+      ro.textContent = `${fmt(t, 0)} °C · ${fmt(p, 2)} kbar · ${p > 0 ? fmt(L.pressureToDepth(p, "constant", rho), 1) : "—"} km (ρ = ${rho} kg/m³)`;
+    });
+    cv.addEventListener("mouseleave", () => { ro.textContent = PT_HINT; });
+  }
+
+  // ------------------------------------------------------------------ interpretation report (text built by lithopt-report.js)
+  let lastReport = null;
+  function buildReport() {
+    const fresh = (x) => x && x.sig === sig(), solved = fresh(lastPt) && lastPt.det.converged;
+    const sample = Object.assign({}, state.sample, { cpxFe2: state.opt.cpxFe2 });
+    let ens = fresh(lastEns) ? lastEns : null;
+    if (!ens && solved) { try { ens = L.ensemblePT(sample, { Pmin: lastPt.opt.Pmin, Pmax: lastPt.opt.Pmax, eqOpt: state.opt }); } catch (e) { ens = null; } }
+    let figure = null;
+    if (solved) { drawPt(1, null, true); figure = $("ptCanvas").toDataURL("image/png"); drawPt(); }
+    const r = window.LithoPTReport.build({ L, sample: state.sample, system: state.system, cond: { P_kbar: state.P ?? 0, T_C: state.T ?? 0 }, eqOpt: state.opt,
+      label: ($("presetSelect").selectedOptions[0] && $("presetSelect").value ? $("presetSelect").selectedOptions[0].textContent : L.SYSTEMS[state.system].name), rho: readNum("depthRho") || 2700,
+      shareUrl: stateUrl(), figure, ens,
+      pt: solved ? { tId: lastPt.tId, pId: lastPt.pId, det: lastPt.det, solveOpt: lastPt.opt,
+        mc: { N: Math.max(100, readNum("mcN") || 1000), rel: (readNum("mcRel") ?? 2) / 100, floor: readNum("mcFloor") ?? 0.02, seed: readNum("mcSeed") ?? 42 } } : null });
+    r.html = window.LithoPTReport.toHtml(r.markdown); // escaped by toHtml
+    r.stale = !!(lastPt && !solved && lastPt.det.converged);
+    lastReport = r;
+    return r;
+  }
+  function initReports() {
+    const stamp = () => new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
+    for (const card of document.querySelectorAll(".report-card")) {
+      const pane = card.querySelector(".report-preview");
+      const act = (btn, fn) => btn.addEventListener("click", () => busy(btn, () => {
+        let r;
+        try { r = buildReport(); } catch (e) { toast("Report could not be built: " + e.message); return; }
+        if (r.stale) toast("Inputs changed since the last P–T solution: the report uses single-equation results. Solve again to include it.");
+        fn(r);
+      }));
+      act(card.querySelector("[data-report=view]"), (r) => { pane.hidden = false; pane.innerHTML = r.html; pane.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "nearest" }); });
+      act(card.querySelector("[data-report=md]"), (r) => download(`LithoPT_Report_${state.system}_${stamp()}.md`, r.markdown.replace(/!\[[^\]]*\]\(data:[^)]*\)\n\n[^\n]*\n\n/, ""), "text/markdown"));
+      act(card.querySelector("[data-report=pdf]"), (r) => {
+        $("printReport").innerHTML = r.html;
+        document.body.classList.add("printing-report");
+        setTimeout(() => window.print(), 50); // the browser's own "Save as PDF"
+      });
+    }
+    addEventListener("afterprint", () => { document.body.classList.remove("printing-report"); $("printReport").textContent = ""; });
+  }
+
+  // ------------------------------------------------------------------ advisor: what the entered minerals unlock, and a ranked choice
+  function goTab(id) { document.querySelector(`.tab-btn[data-tab="${id}"]`).click(); }
+  function initAdvisor() {
+    const chips = $("advChips"), picked = new Set();
+    const hasData = (ph) => state.sample[ph] && Object.values(state.sample[ph]).some((v) => v > 0);
+    const renderSystems = () => {
+      const box = $("advSystems"); box.textContent = "";
+      const open = Object.entries(L.SYSTEMS).filter(([, sy]) => sy.phases.every((p) => picked.has(p)));
+      if (!open.length) { box.appendChild(el("p", { class: "form-hint", text: "Tick the minerals you analysed to see which thermometers and barometers they allow." })); return; }
+      const count = (k, kind) => L.EQUATIONS.filter((e) => e.system === k && e.kind === kind).length;
+      for (const [k, sy] of open) {
+        const b = el("button", { type: "button", class: "adv-system" }, [el("strong", { text: sy.name }), el("span", { text: `${count(k, "T")} thermometers · ${count(k, "P")} barometers${count(k, "H2O") + count(k, "fO2") ? ` · ${count(k, "H2O") + count(k, "fO2")} other` : ""}` })]);
+        b.addEventListener("click", () => { state.system = k; $("systemSelect").value = k; renderPhaseInputs(); $("systemSelect").scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "center" }); });
+        box.appendChild(b);
+      }
+      const nT = open.reduce((a, [k]) => a + count(k, "T"), 0), nP = open.reduce((a, [k]) => a + count(k, "P"), 0);
+      box.appendChild(el("p", { class: "form-hint", text: nT && nP ? `A coupled P–T solution is possible (${nT} thermometers × ${nP} barometers). Click a system to enter its analyses.` : `No coupled P–T solution with these minerals alone: ${nT ? "no barometer" : "no thermometer"} is available. Results will need an assumed ${nT ? "pressure" : "temperature"}.` }));
+    };
+    const sync = () => { picked.clear(); for (const ph of Object.keys(PHASE_LABEL)) if (hasData(ph)) picked.add(ph); chips.querySelectorAll("button").forEach((b) => b.setAttribute("aria-checked", picked.has(b.dataset.ph))); renderSystems(); };
+    for (const [ph, name] of Object.entries(PHASE_LABEL)) {
+      const b = el("button", { type: "button", class: "chip", role: "checkbox", "data-ph": ph, "aria-checked": "false" }, [el("span", { class: "phase-abbr", text: ph }), el("span", { text: name })]);
+      b.addEventListener("click", () => { picked.has(ph) ? picked.delete(ph) : picked.add(ph); b.setAttribute("aria-checked", picked.has(ph)); renderSystems(); });
+      chips.appendChild(b);
+    }
+    $("advisor").addEventListener("toggle", () => $("advisor").open && sync());
+    $("advSyncBtn").addEventListener("click", sync);
+    $("advRunBtn").addEventListener("click", () => busy($("advRunBtn"), () => {
+      const out = $("advOut"); out.textContent = "";
+      let r;
+      try { r = L.recommendModels(Object.assign({}, state.sample, { cpxFe2: state.opt.cpxFe2 }), { P_kbar: state.P ?? 0, T_K: (state.T ?? 0) + 273.15, eqOpt: state.opt, Pmin: readNum("ptPmin") ?? 0, Pmax: readNum("ptPmax") ?? 70 }); }
+      catch (e) { out.appendChild(el("p", { class: "alert-box alert-warning", text: e.message })); return; }
+      const badge = (sc) => el("span", { class: "badge " + (sc >= 80 ? "badge-success" : sc >= 60 ? "badge-warning" : "badge-danger"), text: `${sc} / 100 · ${sc >= 80 ? "strong" : sc >= 60 ? "fair" : "weak"}` });
+      const card = (title, value, sc, why, actions) => el("div", { class: "adv-card" }, [el("div", { class: "adv-head" }, [el("strong", { text: title }), badge(sc)]), el("div", { class: "adv-value", text: value }),
+        el("ul", {}, why.map((w) => el("li", { text: w }))), actions ? el("div", { class: "action-buttons-group" }, actions) : null]);
+      const section = (title, items) => { out.appendChild(el("h3", { class: "section-heading", text: title })); out.appendChild(items.length ? el("div", { class: "adv-grid" }, items) : el("p", { class: "form-hint", text: "None can be evaluated for the analyses entered." })); };
+      const apply = (p, thenReport) => {
+        refreshPtSelects(); $("ptThermo").value = p.T; $("ptBaro").value = p.P; goTab("tab-pt");
+        busy($("runPtBtn"), () => { runPt(); if (thenReport) document.querySelector("#tab-pt [data-report=view]").click(); });
+      };
+      section("Thermometer–barometer pairs", r.pairs.slice(0, 3).map((p) => {
+        const a = el("button", { type: "button", class: "btn btn-primary btn-sm" }, [el("span", { text: "Apply and solve P–T" })]), b = el("button", { type: "button", class: "btn btn-ghost btn-sm" }, [el("span", { text: "Solve and write report" })]);
+        a.addEventListener("click", () => apply(p)); b.addEventListener("click", () => apply(p, true));
+        return card(`${L.EQ[p.T].name} + ${L.EQ[p.P].name}`, `${fmt(p.T_C)} °C (${L.EQ[p.T].see}) · ${fmt(p.P_kbar, 2)} kbar (${L.EQ[p.P].see})`, p.score, p.why, [a, b]);
+      }));
+      const one = (x) => card(L.EQ[x.id].name, `${displayValue(L.EQ[x.id], x.value)} (${x.see})`, x.score, x.why);
+      section(`Thermometers, at ${fmt(state.P ?? 0, 1)} kbar`, r.thermometers.slice(0, 3).map(one));
+      section(`Barometers, at ${fmt(state.T ?? 0, 0)} °C`, r.barometers.slice(0, 3).map(one));
+      out.appendChild(el("p", { class: "form-hint", text: "The score is a fixed, transparent heuristic: phases present and result plausible 25, calibration domain 30, analytical totals and Fe–Mg equilibrium tests 20, published error 15, and for pairs the intersection angle 10. It ranks what the numbers can show; it cannot check that the minerals grew together or that buffering phases (quartz, Al₂SiO₅, rutile…) are present." }));
+    }));
+  }
+
+  // ------------------------------------------------------------------ file import: Excel, one-analysis-per-row tables, clipboard
+  // ponytail: reads the first worksheet of an .xlsx with the browser's own inflate; no styles, dates or formulas without cached values.
+  // Legacy .xls (binary) is not read. Upgrade path: a spreadsheet library, at the cost of the first runtime dependency.
+  async function readXlsx(buf) {
+    if (typeof DecompressionStream !== "function") throw new Error("this browser cannot unpack .xlsx files; save the sheet as CSV");
+    const u8 = new Uint8Array(buf), dv = new DataView(buf), td = new TextDecoder();
+    let e = u8.length - 22;
+    while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+    if (e < 0) throw new Error("not an .xlsx file");
+    const n = dv.getUint16(e + 10, true), files = {};
+    for (let i = 0, p = dv.getUint32(e + 16, true); i < n; i++) {
+      const nl = dv.getUint16(p + 28, true);
+      files[td.decode(u8.subarray(p + 46, p + 46 + nl))] = { method: dv.getUint16(p + 10, true), size: dv.getUint32(p + 20, true), off: dv.getUint32(p + 42, true) };
+      p += 46 + nl + dv.getUint16(p + 30, true) + dv.getUint16(p + 32, true);
+    }
+    const get = async (name) => {
+      const f = files[name]; if (!f) return null;
+      const start = f.off + 30 + dv.getUint16(f.off + 26, true) + dv.getUint16(f.off + 28, true), data = u8.subarray(start, start + f.size);
+      return f.method === 0 ? td.decode(data) : new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).text();
+    };
+    const xml = (t) => new DOMParser().parseFromString(t, "application/xml");
+    const sheet = Object.keys(files).filter((k) => /^xl\/worksheets\/[^/]+\.xml$/.test(k)).sort((a, b) => a.length - b.length || a.localeCompare(b))[0];
+    if (!sheet) throw new Error("no worksheet found");
+    const ssText = await get("xl/sharedStrings.xml");
+    const strings = ssText ? [...xml(ssText).getElementsByTagName("si")].map((si) => [...si.getElementsByTagName("t")].filter((t) => t.parentNode.nodeName !== "rPh").map((t) => t.textContent).join("")) : [];
+    const rows = [];
+    for (const row of xml(await get(sheet)).getElementsByTagName("row")) {
+      const r = [];
+      for (const c of row.getElementsByTagName("c")) {
+        const col = (c.getAttribute("r") || "").replace(/\d+/g, "").split("").reduce((a, ch) => a * 26 + ch.charCodeAt(0) - 64, 0) - 1;
+        const v = c.getElementsByTagName("v")[0], t = c.getAttribute("t");
+        const val = t === "s" ? strings[+v.textContent] : t === "inlineStr" ? c.textContent : v ? v.textContent : "";
+        r[col >= 0 ? col : r.length] = val ?? "";
+      }
+      rows.push(Array.from(r, (x) => x ?? ""));
+    }
+    return rows.filter((r) => r.some((c) => String(c).trim() !== ""));
+  }
+  /** Decide the table layout: Phase_Oxide columns go straight to the batch; one analysis per row goes through the preview. */
+  function ingest(rows) {
+    const prev = $("batchPreview"); prev.hidden = true; prev.textContent = "";
+    if (!rows.length) { toast("The file is empty."); return; }
+    const head = rows[0].map((h) => String(h).trim());
+    if (head.some((h) => PHASE_LABEL[h.split("_")[0]] && h.includes("_"))) { runBatch(rows); return; }
+    const ox = head.map(oxKey), iPhase = head.findIndex((h) => /^(phase|mineral)s?$/i.test(h)), iSample = head.findIndex((h) => /^sample/i.test(h));
+    if (ox.filter(Boolean).length < 3) { runBatch(rows); return; } // not an oxide table: let the batch report the unknown columns
+    const iP = head.indexOf("P_kbar"), iT = head.indexOf("T_C"), items = [];
+    for (const r of rows.slice(1)) {
+      const comp = {};
+      ox.forEach((k, i) => { const x = Number(String(r[i] ?? "").trim()); if (k && String(r[i] ?? "").trim() !== "" && Number.isFinite(x) && x >= 0) { const key = k === "Fe2O3" ? "FeOt" : k; comp[key] = (comp[key] || 0) + (k === "Fe2O3" ? x * FE2O3_TO_FEO : x); } });
+      if (!Object.values(comp).some((v) => v > 0)) continue;
+      const g = L.classifyMineral(comp), declared = iPhase >= 0 ? String(r[iPhase] ?? "").trim() : "", code = declared ? phaseCode(declared) : null;
+      items.push({ sample: iSample >= 0 ? String(r[iSample] ?? "").trim() : "", declared, comp, g, phase: code || (g.supported ? g.phase : ""), P: iP >= 0 ? r[iP] : "", T: iT >= 0 ? r[iT] : "" });
+    }
+    if (!items.length) { toast("No oxide analyses were found in the file."); return; }
+    prev.hidden = false;
+    prev.appendChild(el("p", { class: "form-hint", text: `${items.length} analyses, one per row${iPhase >= 0 ? "" : "; no Phase column, so each mineral was guessed from its stoichiometry"}. Check the phase of each row, then run the batch. Rows with the same Sample name form one sample (several analyses of one phase are averaged)${iSample >= 0 ? "" : "; with no Sample column all rows are treated as one sample"}.${ox.includes("Fe2O3") ? " Fe₂O₃ was converted to FeO and added to total iron." : ""}` }));
+    const tb = el("tbody");
+    for (const it of items) {
+      const sel = el("select", { class: "select-input", "aria-label": "Phase" }, [el("option", { value: "", text: "skip this row" })].concat(Object.keys(PHASE_LABEL).filter((p) => p !== "Trace").map((p) => el("option", { value: p, text: `${p} · ${PHASE_LABEL[p]}` }))));
+      sel.value = it.phase; sel.addEventListener("change", () => { it.phase = sel.value; });
+      const note = it.declared ? (phaseCode(it.declared) ? `stated: ${it.declared}` : `"${it.declared}" not recognised; guess: ${it.g.name}`) : `guess: ${it.g.name}${it.g.supported ? "" : " (no equations for this mineral)"}`;
+      tb.appendChild(el("tr", {}, [el("td", { text: it.sample || "—" }), el("td", {}, [sel]), el("td", { text: note }),
+        el("td", {}, [el("span", { class: "badge " + (it.g.ambiguous || it.g.score < 0.85 ? "badge-warning" : "badge-success"), text: `${it.g.name} ${Math.round(it.g.score * 100)} %${it.g.ambiguous ? ", ambiguous" : ""}` })]), el("td", { text: it.g.total.toFixed(2) })]));
+    }
+    prev.appendChild(el("div", { class: "table-responsive" }, [el("table", { class: "data-table compact-table" }, [el("thead", {}, [el("tr", {}, ["Sample", "Use as", "Source", "Stoichiometric guess", "Total (wt%)"].map((t) => el("th", { text: t })))]), tb])]));
+    const go = el("button", { type: "button", class: "btn btn-primary" }, [el("span", { text: "Run batch with these phases" })]);
+    go.addEventListener("click", () => {
+      const groups = new Map();
+      for (const it of items) { if (!it.phase) continue; const k = it.sample || "Sample 1"; if (!groups.has(k)) groups.set(k, { P: it.P, T: it.T, ph: {} }); (groups.get(k).ph[it.phase] = groups.get(k).ph[it.phase] || []).push(it.comp); }
+      const phs = [...new Set(items.map((it) => it.phase).filter(Boolean))], cols = phs.flatMap((p) => PHASE_FIELDS(p).filter((f) => oxKey(f)).map((f) => [p, f]));
+      const wide = [["Sample"].concat(iP >= 0 ? ["P_kbar"] : [], iT >= 0 ? ["T_C"] : [], cols.map(([p, f]) => `${p}_${f}`))];
+      for (const [k, g] of groups) wide.push([k].concat(iP >= 0 ? [String(g.P)] : [], iT >= 0 ? [String(g.T)] : [], cols.map(([p, f]) => { const a = g.ph[p]; return a ? String(+(a.reduce((s, c) => s + (c[f] || 0), 0) / a.length).toFixed(4)) : ""; })));
+      runBatch(wide);
+    });
+    prev.appendChild(go);
+  }
+  function openBatchSample(i) {
+    const b = batchSamples[i]; if (!b) return;
+    const sysKey = Object.keys(L.SYSTEMS).find((k) => L.SYSTEMS[k].phases.every((p) => b.sample[p])) ;
+    if (!sysKey) { toast("No equation system matches the phases of this sample."); return; }
+    restore({ system: sysKey, P: b.P, T: b.T, sample: JSON.parse(JSON.stringify(b.sample)) });
+    $("presetSelect").value = ""; goTab("tab-calc"); toast(`Opened ${b.name || "sample"} in the calculator`);
   }
 
   // ------------------------------------------------------------------ catalogue
@@ -928,7 +1224,10 @@
     for (const [k, p] of Object.entries(PRESETS)) ps.appendChild(el("option", { value: k, text: p.label }));
     ps.addEventListener("change", () => ps.value && loadPreset(ps.value));
     buildSystemSelect();
-    initFormula(); initBatch(); initCatalog();
+    // each part of the page starts independently, so one failure cannot leave the rest unwired
+    for (const init of [initFormula, initBatch, initCatalog, initDiagramTools, initReports, initAdvisor]) { try { init(); } catch (e) { console.error(e); } }
+    $("batchPasteBtn").addEventListener("click", () => (navigator.clipboard && navigator.clipboard.readText ? navigator.clipboard.readText() : Promise.reject())
+      .then((t) => ingest(parseCsv(t)), () => { const t = prompt("Paste the table here:"); if (t) ingest(parseCsv(t)); }));
     $("runPtBtn").addEventListener("click", () => busy($("runPtBtn"), runPt));
     $("runEnsBtn").addEventListener("click", () => busy($("runEnsBtn"), runEnsemble));
     for (const [k, m] of Object.entries(L.DEPTH_MODELS)) $("depthModel").appendChild(el("option", { value: k, text: m.name }));
