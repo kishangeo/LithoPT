@@ -1,0 +1,11 @@
+node_modules/
+test-results/
+playwright-report/
+*.tmp
+__pycache__/
+paper/Group1_Kimberley.xlsx
+paper/case_input.json
+validation/crosscheck_thermobar.json
+validation/_experiments.json
+LithoPT_User_Manual.docx
+.vercel

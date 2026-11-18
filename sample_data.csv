@@ -1,0 +1,3 @@
+Sample,P_kbar,T_C,Grt_SiO2,Grt_TiO2,Grt_Al2O3,Grt_Cr2O3,Grt_FeOt,Grt_MnO,Grt_MgO,Grt_CaO,Grt_Na2O,Grt_K2O,Bt_SiO2,Bt_TiO2,Bt_Al2O3,Bt_Cr2O3,Bt_FeOt,Bt_MnO,Bt_MgO,Bt_CaO,Bt_Na2O,Bt_K2O,Pl_SiO2,Pl_TiO2,Pl_Al2O3,Pl_Cr2O3,Pl_FeOt,Pl_MnO,Pl_MgO,Pl_CaO,Pl_Na2O,Pl_K2O
+pelite-1,6,650,37.52,0.05,21.4,0.02,29.8,1.85,4.2,4.5,0.03,0.01,35.8,2.85,18.5,0,18.2,0.15,11.2,0.08,0.25,9.4,60.1,0,25,0,0,0,0,6.6,7.6,0.15
+pelite-2,6,650,37.52,0.05,21.4,0.02,29.8,1.85,4.28,4.5,0.03,0.01,35.8,2.85,18.5,0,18.2,0.15,11.42,0.08,0.25,9.4,60.1,0,25,0,0,0,0,6.6,7.6,0.15

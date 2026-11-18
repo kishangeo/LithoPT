@@ -1,0 +1,9 @@
+{
+  "title": "LithoPT: browser-based thermobarometry with calibration-domain diagnostics and model-choice uncertainty",
+  "upload_type": "software",
+  "description": "Open-source, dependency-free JavaScript thermobarometry engine and web application: thermometers, barometers and oxybarometers implemented directly from their original publications, coupled P–T solutions, oxide-level Monte Carlo uncertainty propagation and model-choice ensembles.",
+  "creators": [{ "name": "Tiwari, Kishan", "affiliation": "Indian Institute of Technology Kharagpur", "orcid": "0000-0003-0014-914X" }],
+  "license": "MIT",
+  "keywords": ["thermobarometry", "geothermobarometry", "petrology", "Monte Carlo", "applicability domain", "JavaScript"],
+  "related_identifiers": [{ "identifier": "10.30909/vol.05.02.349384", "relation": "references", "scheme": "doi" }]
+}

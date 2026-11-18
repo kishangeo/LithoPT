@@ -1,0 +1,186 @@
+[
+{
+"term": "Activity (a)",
+"text": "The effective concentration of a component in a solution, a = X γ; equal to the mole fraction for ideal mixing."
+},
+{
+"term": "Activity coefficient (γ)",
+"text": "Factor describing deviation from ideal mixing; γ &gt; 1 for positive deviations."
+},
+{
+"term": "Al<sup>IV</sup>, Al<sup>VI</sup>",
+"text": "Aluminium in tetrahedral (IV) and octahedral (VI) coordination."
+},
+{
+"term": "Analytical total",
+"text": "Sum of oxide weight percentages of an analysis; ~100% for anhydrous phases."
+},
+{
+"term": "Anhydrous basis",
+"text": "Composition recalculated without H₂O (sum of other oxides normalised)."
+},
+{
+"term": "apfu",
+"text": "Atoms per formula unit: number of cations in the mineral formula normalised to a fixed number of oxygens or cations."
+},
+{
+"term": "Barometer",
+"text": "Equilibrium whose composition depends mainly on pressure; used to estimate P at known T."
+},
+{
+"term": "Box–Muller transform",
+"text": "Method generating normally distributed random numbers from pairs of uniform random numbers."
+},
+{
+"term": "Bisection",
+"text": "Root-finding method that repeatedly halves an interval in which a function changes sign; always converges."
+},
+{
+"term": "Calibration dataset",
+"text": "The experiments (or natural samples) used to fit an empirical equation."
+},
+{
+"term": "Calibration domain",
+"text": "The compositional (and P–T) space covered by a calibration dataset; LithoPT measures it with the Mahalanobis distance."
+},
+{
+"term": "Cation fraction",
+"text": "Number of atoms of a cation divided by the total number of cations (anhydrous)."
+},
+{
+"term": "Charge balance",
+"text": "Condition that positive and negative charges in a mineral formula are equal; used to estimate Fe³⁺."
+},
+{
+"term": "Correlation coefficient (ρ)",
+"text": "cov(T, P)/(σ_T σ_P); ±1 perfect correlation, 0 none."
+},
+{
+"term": "Covariance",
+"text": "Measure of joint variability of two quantities."
+},
+{
+"term": "Cr#",
+"text": "Cr/(Cr + Al), molar."
+},
+{
+"term": "D (partition coefficient)",
+"text": "Concentration ratio of an element between two phases, e.g. D_Mg<sup>ol/liq</sup>."
+},
+{
+"term": "D²",
+"text": "Squared Mahalanobis distance (Chapter 9)."
+},
+{
+"term": "Droop (1987) method",
+"text": "Estimation of Fe³⁺ from stoichiometry and charge balance (Section 4.2)."
+},
+{
+"term": "Ensemble (model ensemble)",
+"text": "Set of solutions from all compatible thermometer–barometer pairs; its spread measures model-choice uncertainty."
+},
+{
+"term": "Equilibrium constant (K)",
+"text": "Product of activities of products over reactants, each raised to its stoichiometric coefficient."
+},
+{
+"term": "Exchange reaction",
+"text": "Reaction exchanging two cations between phases, with small volume change; a good thermometer."
+},
+{
+"term": "FeO_t",
+"text": "Total iron expressed as FeO."
+},
+{
+"term": "FMQ (QFM)",
+"text": "Fayalite–magnetite–quartz oxygen buffer; ΔFMQ is log fO₂ relative to it."
+},
+{
+"term": "fO₂",
+"text": "Oxygen fugacity, the effective partial pressure of oxygen; describes the redox state."
+},
+{
+"term": "GASP",
+"text": "Garnet–Al₂SiO₅–plagioclase–quartz barometer."
+},
+{
+"term": "Hygrometer",
+"text": "Equation estimating melt water content."
+},
+{
+"term": "K_D",
+"text": "Distribution (exchange) coefficient, e.g. (Fe/Mg)^A/(Fe/Mg)^B."
+},
+{
+"term": "K_D equilibrium test",
+"text": "Comparison of measured and expected K_D to test whether two phases were in equilibrium."
+},
+{
+"term": "kbar",
+"text": "Kilobar; 1 kbar = 0.1 GPa ≈ 3.3–3.7 km of crust."
+},
+{
+"term": "Mahalanobis distance",
+"text": "Distance of a point from the mean of a multivariate distribution in units of standard deviation, accounting for correlations."
+},
+{
+"term": "Mg#",
+"text": "Mg/(Mg + Fe) molar (often ×100)."
+},
+{
+"term": "Monte Carlo simulation",
+"text": "Repeated calculation with randomly perturbed inputs to estimate output uncertainty."
+},
+{
+"term": "Net-transfer reaction",
+"text": "Reaction changing modal amounts of phases, usually with large ΔV; a good barometer."
+},
+{
+"term": "Oxybarometer",
+"text": "Equation estimating oxygen fugacity."
+},
+{
+"term": "Plausibility limits",
+"text": "Broad physical bounds outside which results are flagged."
+},
+{
+"term": "RMSE",
+"text": "Root-mean-square error between calculated and reference values."
+},
+{
+"term": "Saturation thermometer",
+"text": "Thermometer based on the solubility of a phase in a melt that is saturated in it."
+},
+{
+"term": "SEE",
+"text": "Standard error of estimate of a regression: scatter of calibration data about the fitted equation."
+},
+{
+"term": "Seed",
+"text": "Starting value of a pseudo-random number generator; the same seed gives the same Monte Carlo sample."
+},
+{
+"term": "Solvus",
+"text": "Miscibility gap between two coexisting phases of the same structure."
+},
+{
+"term": "Standard state",
+"text": "Reference state for thermodynamic properties; here the pure phase at P and T."
+},
+{
+"term": "Structural formula",
+"text": "Mineral formula expressed as cations per formula unit."
+},
+{
+"term": "Thermometer",
+"text": "Equilibrium whose composition depends mainly on temperature; used to estimate T at known P."
+},
+{
+"term": "Trace-element thermometer",
+"text": "Thermometer based on the temperature-dependent concentration of a trace element in a buffered mineral."
+},
+{
+"term": "X_i",
+"text": "Mole fraction of component i."
+}
+]

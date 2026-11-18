@@ -1,0 +1,14 @@
+{
+  "name": "LithoPT: browser-based thermobarometry",
+  "short_name": "LithoPT",
+  "description": "Client-side thermobarometry: thermometers, barometers, coupled P–T solutions and Monte Carlo uncertainty. Works offline.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f5f2",
+  "theme_color": "#f6f5f2",
+  "icons": [
+    { "src": "logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "LithoPT_Logo_HighRes.png", "sizes": "2370x2370", "type": "image/png", "purpose": "any" }
+  ]
+}

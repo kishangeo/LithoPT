@@ -1,0 +1,32 @@
+name: tests
+on:
+  push:
+  pull_request:
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: node test/core.test.js
+      - run: node test/fuzz.js > /dev/null
+  browsers:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, project: chromium }
+          - { os: ubuntu-latest, project: firefox }
+          - { os: macos-latest, project: webkit }
+          - { os: windows-latest, project: chromium }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.project }}
+      - run: npx playwright test --project=${{ matrix.project }}

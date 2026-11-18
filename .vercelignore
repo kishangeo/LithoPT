@@ -1,0 +1,16 @@
+# Files not needed by the deployed web app
+node_modules
+test
+test-results
+playwright-report
+validation
+paper
+docs/build_manual.py
+docs/export_equations.js
+docs/equations.json
+package.json
+package-lock.json
+playwright.config.js
+.github
+*.py
+*.docx

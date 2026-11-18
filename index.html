@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f5f2">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="LithoPT_Logo_HighRes.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>LithoPT | Browser-based thermobarometry</title>
+  <meta name="description" content="Open-source, client-side thermobarometry: mineral–mineral, saturation and trace-element thermometers and barometers, coupled P–T solutions and Monte Carlo uncertainty propagation.">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <script src="theme.js"></script>
+</head>
+<body class="theme-light">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><rect x="8" y="6" width="8" height="3.5" rx="1"/><path d="M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 16.5h.01M12 16.5h.01M15.5 16.5h.01"/></symbol>
+      <symbol id="i-pt" viewBox="0 0 24 24"><path d="M4 3v17h17"/><path d="M7 17c3-7 7-10 12-11"/><path d="M7 7c4 2 8 6 11 11"/><circle cx="12.3" cy="10.6" r="1.6"/></symbol>
+      <symbol id="i-hex" viewBox="0 0 24 24"><path d="M12 2.8l8 4.6v9.2l-8 4.6-8-4.6V7.4z"/><path d="M12 12l8-4.6M12 12v9.2M12 12L4 7.4"/></symbol>
+      <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M3 14.8h18M9 9.5V20"/></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19M9 7h6"/></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+      <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 16V5M7 10l5-5 5 5M5 20h14"/></symbol>
+      <symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></symbol>
+      <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></symbol>
+      <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-9 9"/></symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a5 5 0 0 1-.6-9.96A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9"/><path d="M12 12v8M9 15l3-3 3 3"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></symbol>
+      <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 11h7M8.5 14.5h4"/></symbol>
+      <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></symbol>
+      <symbol id="i-bug" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="13" rx="5"/><path d="M9 7a3 3 0 0 1 6 0M3 13h4M17 13h4M4 8l3 2M20 8l-3 2M4 19l3-2M20 19l-3-2M12 11v9"/></symbol>
+      <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></symbol>
+      <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></symbol>
+      <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v13c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-13M4.5 12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8"/></symbol>
+      <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-1 1.3-2l-.4-.8c-.6-1.2.3-2.7 1.7-2.7H17a4 4 0 0 0 4-4c0-4.7-4-8.5-9-8.5z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 6.5l8.5 6 8.5-6"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+      <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/></symbol>
+      <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/></symbol>
+      <symbol id="i-quote" viewBox="0 0 24 24"><path d="M9 7H5v6h4v-1c0 2-1 3.5-3 4M19 7h-4v6h4v-1c0 2-1 3.5-3 4"/></symbol>
+      <symbol id="i-abc" viewBox="0 0 24 24"><path d="M3 17l3.5-10L10 17M4.2 13.5h4.6M13 7v10h3.2a2.5 2.5 0 0 0 0-5H13h2.7a2.3 2.3 0 0 0 0-5z"/><path d="M21.5 9a3 3 0 0 0-1.5-.5"/></symbol>
+      <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></symbol>
+    </defs>  </svg>
+
+  <div class="app-shell">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <svg class="sidebar-contours" viewBox="0 0 300 800" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M-20 700 C 80 600, 120 480, 320 420"/><path d="M-20 740 C 90 640, 150 520, 320 470"/>
+        <path d="M-20 780 C 100 680, 180 560, 320 520"/><path d="M-20 90 C 90 160, 200 250, 320 420"/>
+        <path d="M-20 40 C 100 120, 220 200, 320 360"/><path d="M-20 -10 C 110 80, 240 150, 320 300"/>
+      </svg>
+      <a href="#" class="brand-link">
+        <img src="logo.svg" alt="LithoPT logo" class="brand-logo-img" width="40" height="40">
+        <div>
+          <h1 class="brand-title">Litho<span>PT</span></h1>
+          <p class="brand-subtitle">Thermobarometry · <span id="versionLabel"></span></p>
+        </div>
+      </a>
+      <nav class="tabs-nav" role="tablist" aria-label="Sections">
+        <p class="nav-caption">Workspace</p>
+        <button class="tab-btn active" data-tab="tab-calc" data-short="Calc" role="tab" data-title="Calculator" data-sub="Live evaluation of every equation in the selected system">
+          <svg class="ico"><use href="#i-calc"/></svg><span>Calculator</span></button>
+        <button class="tab-btn" data-tab="tab-pt" data-short="P–T" role="tab" data-title="P–T solution &amp; Monte Carlo" data-sub="Coupled thermometer–barometer, uncertainty and model ensemble">
+          <svg class="ico"><use href="#i-pt"/></svg><span>P–T &amp; Monte Carlo</span></button>
+        <button class="tab-btn" data-tab="tab-formula" data-short="Formula" role="tab" data-title="Structural formula" data-sub="Cations per formula unit from an oxide analysis">
+          <svg class="ico"><use href="#i-hex"/></svg><span>Structural formula</span></button>
+        <button class="tab-btn" data-tab="tab-batch" data-short="Batch" role="tab" data-title="Batch processing" data-sub="Evaluate every applicable equation for each row of a CSV file">
+          <svg class="ico"><use href="#i-table"/></svg><span>Batch (CSV)</span></button>
+        <p class="nav-caption">Reference</p>
+        <button class="tab-btn" data-tab="tab-catalog" data-short="Refs" role="tab" data-title="Equations &amp; references" data-sub="All implemented calibrations, their validity and verification status">
+          <svg class="ico"><use href="#i-book"/></svg><span>Equations &amp; references</span></button>
+        <button class="tab-btn" data-tab="tab-manual" data-short="Manual" role="tab" data-title="User manual" data-sub="The full scientific reference, readable here or as a PDF">
+          <svg class="ico"><use href="#i-doc"/></svg><span>User manual</span></button>
+        <button class="tab-btn" data-tab="tab-glossary" data-short="Glossary" role="tab" data-title="Glossary" data-sub="Terms and symbols used in thermobarometry and in LithoPT">
+          <svg class="ico"><use href="#i-abc"/></svg><span>Glossary</span></button>
+      </nav>
+      <div class="sidebar-foot">
+        <button type="button" class="side-link side-feedback" data-open="feedbackDialog"><svg class="ico"><use href="#i-chat"/></svg>Send feedback</button>
+        <a href="docs/LithoPT_User_Manual.pdf" target="_blank" rel="noopener" class="side-link" title="Open the user manual (PDF) in a new tab"><svg class="ico"><use href="#i-doc"/></svg>Manual (PDF)</a>
+        <a href="docs/LithoPT_User_Manual.pdf" download class="side-link" title="Download the user manual (PDF)"><svg class="ico"><use href="#i-down"/></svg>Download PDF</a>
+        <p class="side-note"><span class="dot-live"></span>Runs entirely in your browser</p>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <!-- TOP BAR -->
+      <header class="topbar">
+        <div class="topbar-title">
+          <h2 id="pageTitle">Calculator</h2>
+          <p id="pageSub">Live evaluation of every equation in the selected system</p>
+        </div>
+        <div class="header-actions">
+          <div class="preset-selector-group">
+            <label for="presetSelect"><svg class="ico"><use href="#i-layers"/></svg><span class="sr-only">Example</span></label>
+            <select id="presetSelect" class="select-input"><option value="">Load example…</option></select>
+          </div>
+          <div class="btn-group">
+            <button id="shareBtn" class="btn btn-ghost btn-sm" title="Share this calculation: link, results summary and citation"><svg class="ico"><use href="#i-share"/></svg><span>Share</span></button>
+            <button id="saveJsonBtn" class="btn btn-ghost btn-sm" title="Save the current state as JSON"><svg class="ico"><use href="#i-down"/></svg><span>Save JSON</span></button>
+            <label class="btn btn-ghost btn-sm" for="loadJsonInput" title="Load a saved JSON state"><svg class="ico"><use href="#i-up"/></svg><span>Load JSON</span></label>
+            <input type="file" id="loadJsonInput" accept=".json" hidden>
+          </div>
+          <button id="feedbackBtn" class="btn btn-primary btn-sm" data-open="feedbackDialog" title="Report a problem or suggest an improvement"><svg class="ico"><use href="#i-chat"/></svg><span>Feedback</span></button>
+          <button id="themeToggleBtn" class="btn btn-ghost btn-icon" title="Toggle dark/light mode" aria-label="Toggle dark mode"><svg class="ico"><use href="#i-theme"/></svg></button>
+        </div>
+      </header>
+
+      <main class="main-container">
+        <!-- CALCULATOR -->
+        <section id="tab-calc" class="tab-content active" role="tabpanel">
+          <div class="guide" id="firstRun" hidden>
+            <div><h3><b>1</b>Choose what you have</h3><p>Pick the minerals (and melt) you analysed from <em>Equilibrium system</em>. Systems are grouped by rock type.</p></div>
+            <div><h3><b>2</b>Enter the analyses</h3><p>Type or paste oxide values in wt%. Leave unknown oxides blank. Results update as you type.</p></div>
+            <div><h3><b>3</b>Read and combine</h3><p>Every published equation for that system is listed with its error. For a single P–T point, go to <em>P–T &amp; Monte Carlo</em>.</p></div>
+            <div class="guide-actions"><button id="guideExample" class="btn btn-primary btn-sm">Try an example</button><button id="guideDismiss" class="btn btn-ghost btn-sm">Got it</button></div>
+          </div>
+          <div class="stat-strip" id="calcStats"></div>
+          <div class="grid-2col grid-split">
+            <div class="panel">
+              <div class="panel-header"><h2 class="panel-title"><span class="step">1</span>System and conditions</h2></div>
+              <div class="form-group">
+                <label for="systemSelect">Equilibrium system</label>
+                <select id="systemSelect" class="select-input select-large"></select>
+                <p class="needs" id="systemNeeds"></p>
+              </div>
+              <div class="grid-2col compact-grid cond-grid">
+                <div class="form-group">
+                  <label for="condP">Pressure for thermometers</label>
+                  <div class="input-unit"><input type="number" id="condP" class="text-input" value="5" step="0.5"><span>kbar</span></div>
+                </div>
+                <div class="form-group">
+                  <label for="condT">Temperature for barometers</label>
+                  <div class="input-unit"><input type="number" id="condT" class="text-input" value="800" step="10"><span>°C</span></div>
+                </div>
+              </div>
+              <div id="systemOptions"></div>
+              <div class="panel-header panel-header-spaced"><h2 class="panel-title"><span class="step">2</span>Phase compositions <small>wt%</small></h2></div>
+              <p class="form-hint">Total iron as FeO<sub>t</sub>. Empty fields are treated as zero. All phases entered are shared by the P–T solver and the share link.</p>
+              <div id="phaseInputs"></div>
+            </div>
+
+            <div class="panel panel-results">
+              <div class="panel-header">
+                <h2 class="panel-title"><span class="step step-accent">3</span>Results</h2>
+                <span class="live-pill"><span class="dot-live"></span>Live</span>
+              </div>
+              <div id="calcErrors" class="alert-box alert-warning" hidden></div>
+              <div class="table-responsive">
+                <table class="data-table results-table">
+                  <thead><tr><th>Equation</th><th>Result</th><th title="Standard error of estimate reported by the equation's authors: the scatter of their calibration data about the equation">Error (1σ)</th><th title="How close your analysis is to the compositions the equation was calibrated on. 'Outside' results should not be trusted. A dash means no calibration dataset is available for this equation.">Within calibration?</th></tr></thead>
+                  <tbody id="resultsBody"></tbody>
+                </table>
+              </div>
+              <div class="grid-2col sub-grid">
+                <div>
+                  <h3 class="section-heading">Equilibrium tests</h3>
+                  <div id="eqTests" class="form-hint">None of the equations for the entered phases defines an equilibrium test.</div>
+                </div>
+                <div>
+                  <h3 class="section-heading">Phase components</h3>
+                  <div id="componentSummary" class="form-hint"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- P–T SOLVER -->
+        <section id="tab-pt" class="tab-content" role="tabpanel">
+          <div class="grid-2col grid-split">
+            <div class="panel">
+              <div class="panel-header"><h2 class="panel-title">Coupled thermometer–barometer</h2></div>
+              <p class="panel-desc">Equations are listed when every phase they need has been entered in the Calculator. The intersection is found by bracketed bisection on g(P) = P<sub>eq</sub>(T<sub>eq</sub>(P)) − P; failure to bracket a root is reported, never hidden.</p>
+              <div class="form-group"><label for="ptThermo"><span class="kind-dot kind-T"></span>Thermometer</label><select id="ptThermo" class="select-input"></select></div>
+              <div class="form-group"><label for="ptBaro"><span class="kind-dot kind-P"></span>Barometer</label><select id="ptBaro" class="select-input"></select></div>
+              <div class="grid-2col compact-grid cond-grid">
+                <div class="form-group"><label for="ptPmin">P search min</label><div class="input-unit"><input type="number" id="ptPmin" class="text-input" value="0"><span>kbar</span></div></div>
+                <div class="form-group"><label for="ptPmax">P search max</label><div class="input-unit"><input type="number" id="ptPmax" class="text-input" value="70"><span>kbar</span></div></div>
+              </div>
+              <details class="monte-carlo-box" open>
+                <summary class="section-heading">Monte Carlo (analytical uncertainty)</summary>
+                <div class="grid-2col compact-grid cond-grid">
+                  <div class="form-group"><label for="mcN">Iterations N</label><input type="number" id="mcN" class="text-input" value="1000" min="100" step="100"></div>
+                  <div class="form-group"><label for="mcRel">Relative 1σ per oxide</label><div class="input-unit"><input type="number" id="mcRel" class="text-input" value="2" step="0.5" min="0"><span>%</span></div></div>
+                  <div class="form-group"><label for="mcFloor">Absolute 1σ floor</label><div class="input-unit"><input type="number" id="mcFloor" class="text-input" value="0.02" step="0.01" min="0"><span>wt%</span></div></div>
+                  <div class="form-group"><label for="mcSeed">Random seed</label><input type="number" id="mcSeed" class="text-input" value="42"></div>
+                </div>
+                <label class="switch"><input type="checkbox" id="mcCal"><span class="switch-track"></span>Also propagate calibration error (SEE of both equations)</label>
+                <p class="form-hint">Every oxide of every phase is perturbed independently (σ = max(rel·x, floor)); components are recomputed and the coupled system re-solved for each draw. Optionally, each draw also receives Gaussian offsets with the published standard errors of the two equations.</p>
+              </details>
+              <div class="grid-2col compact-grid cond-grid">
+                <div class="form-group"><label for="depthModel">Pressure → depth</label><select id="depthModel" class="select-input"></select></div>
+                <div class="form-group"><label for="depthRho">Density (constant model)</label><div class="input-unit"><input type="number" id="depthRho" class="text-input" value="2700" step="50"><span>kg/m³</span></div></div>
+              </div>
+              <button id="runPtBtn" class="btn btn-primary btn-block btn-lg"><svg class="ico"><use href="#i-play"/></svg><span>Solve P–T</span></button>
+              <div class="convergence-card" id="ptSummary"></div>
+
+              <div class="divider"></div>
+              <h3 class="section-heading">Model-choice uncertainty</h3>
+              <p class="form-hint">Solves every compatible thermometer × barometer pair for the entered phases and summarises how much the answer depends on the choice of equations. Leave the list unselected to use all systems for which you entered phases, except the liquid-only saturation thermometers.</p>
+              <div class="form-group"><label for="ensSystems">Systems included <small class="form-hint-inline">(Ctrl/⌘-click for several)</small></label><select id="ensSystems" class="select-input" multiple size="5"></select></div>
+              <label class="switch"><input type="checkbox" id="ensRestricted"><span class="switch-track"></span>Include calibrations restricted to particular magma types (e.g. alkaline-only)</label>
+              <button id="runEnsBtn" class="btn btn-secondary btn-block"><svg class="ico"><use href="#i-layers"/></svg><span>Run model ensemble</span></button>
+              <div class="convergence-card" id="ensSummary"></div>
+            </div>
+            <div class="panel panel-sticky">
+              <div class="panel-header">
+                <h2 class="panel-title">P–T diagram</h2>
+                <button id="exportPngBtn" class="btn btn-sm btn-ghost"><svg class="ico"><use href="#i-image"/></svg><span>Export PNG</span></button>
+              </div>
+              <div class="canvas-wrapper"><canvas id="ptCanvas" width="1400" height="1040" aria-label="P–T diagram"></canvas></div>
+              <div class="legend-container">
+                <span class="legend-item"><span class="legend-line kind-T"></span>Thermometer T(P)</span>
+                <span class="legend-item"><span class="legend-line kind-P"></span>Barometer P(T)</span>
+                <span class="legend-item"><span class="legend-dot legend-mc"></span>Monte Carlo draws; ellipses 1σ (solid), 2σ (dashed)</span>
+                <span class="legend-item"><span class="legend-diamond"></span>Ensemble pairs (filled = within calibration domains)</span>
+                <span class="legend-item"><span class="legend-dot legend-sol"></span>Deterministic solution</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STRUCTURAL FORMULA -->
+        <section id="tab-formula" class="tab-content" role="tabpanel">
+          <div class="grid-2col">
+            <div class="panel">
+              <div class="panel-header"><h2 class="panel-title">Oxide analysis</h2></div>
+              <div class="form-group"><label for="sfMineral">Mineral</label><select id="sfMineral" class="select-input select-large"></select></div>
+              <div id="sfInputs" class="phase-card"></div>
+              <p class="form-hint">Fe<sup>3+</sup> is estimated with Droop (1987) only for minerals with a fixed ideal cation total; biotite and amphibole are reported with all Fe as Fe<sup>2+</sup> because their vacancy and OH contents make charge balance underdetermined.</p>
+            </div>
+            <div class="panel">
+              <div class="panel-header"><h2 class="panel-title">Cations per formula unit</h2><span id="sfBasis" class="badge badge-info"></span></div>
+              <div class="table-responsive">
+                <table class="data-table compact-table"><thead><tr><th>Cation</th><th>apfu</th><th class="bar-col"></th></tr></thead><tbody id="sfBody"></tbody></table>
+              </div>
+              <div id="sfNote" class="form-hint"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- BATCH -->
+        <section id="tab-batch" class="tab-content" role="tabpanel">
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">Batch processing</h2>
+              <div class="action-buttons-group">
+                <button id="batchTemplateBtn" class="btn btn-sm btn-ghost"><svg class="ico"><use href="#i-down"/></svg><span>Download template</span></button>
+                <button id="batchExportBtn" class="btn btn-sm btn-success" disabled><svg class="ico"><use href="#i-table"/></svg><span>Export results</span></button>
+              </div>
+            </div>
+            <p class="panel-desc">One row per sample. Columns are named <code>Phase_Oxide</code> (e.g. <code>Grt_FeOt</code>, <code>Liq_H2O</code>, <code>Trace_Ti_zrc</code>) plus <code>Sample</code>, <code>P_kbar</code> and <code>T_C</code>. Unrecognised columns are listed, not guessed. Every equation whose phases are present is evaluated.</p>
+            <div class="dropzone" id="csvDropzone" tabindex="0" role="button" aria-label="Choose a CSV file">
+              <svg class="dropzone-icon"><use href="#i-cloud"/></svg>
+              <p class="dropzone-text">Drop a CSV file here or <span class="browse-link">click to choose</span></p>
+              <p class="form-hint">Comma, semicolon or tab separated · processed locally</p>
+              <input type="file" id="csvFileInput" accept=".csv,.txt" hidden>
+            </div>
+            <div id="batchStatus" class="alert-box alert-info" hidden></div>
+            <div class="table-responsive table-scroll"><table class="data-table" id="batchTable"><thead></thead><tbody></tbody></table></div>
+          </div>
+        </section>
+
+        <!-- CATALOGUE -->
+        <section id="tab-catalog" class="tab-content" role="tabpanel">
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">Implemented equations <span id="catalogCount" class="badge"></span></h2>
+              <div class="search-box"><svg class="ico"><use href="#i-search"/></svg><input type="search" id="catalogSearch" class="text-input" placeholder="Filter by name, system or range…"></div>
+            </div>
+            <p class="panel-desc">Every equation is implemented directly from its original publication and checked coefficient by coefficient against the printed equation, including variable definitions and units; <code>test/core.test.js</code> re-checks them. “Pending” = implemented from the paper, awaiting that check; excluded from ensembles. Further calibrations are being added as they are re-implemented from their original papers.</p>
+            <div class="table-responsive table-scroll">
+              <table class="data-table"><thead><tr><th>System</th><th>Type</th><th>Equation</th><th>SEE</th><th>Calibration / validity</th><th>Verification</th><th>Calibration domain</th><th>Reference</th></tr></thead><tbody id="catalogBody"></tbody></table>
+            </div>
+          </div>
+        </section>
+        <!-- MANUAL -->
+        <section id="tab-manual" class="tab-content" role="tabpanel">
+          <div class="manual-layout">
+            <aside class="manual-toc panel">
+              <div class="search-box"><svg class="ico"><use href="#i-search"/></svg><input type="search" id="manualSearch" class="text-input" placeholder="Search the manual…"></div>
+              <p id="manualHits" class="form-hint"></p>
+              <button type="button" id="manualTocToggle" class="btn btn-secondary btn-block toc-toggle" aria-expanded="false"><svg class="ico"><use href="#i-book"/></svg><span>Contents</span></button>
+              <nav id="manualToc" aria-label="Manual contents"></nav>
+              <div class="manual-actions">
+                <a href="docs/LithoPT_User_Manual.pdf" target="_blank" rel="noopener" class="btn btn-ghost btn-sm"><svg class="ico"><use href="#i-doc"/></svg><span>Open PDF</span></a>
+                <a href="docs/LithoPT_User_Manual.pdf" download class="btn btn-primary btn-sm"><svg class="ico"><use href="#i-down"/></svg><span>Download PDF</span></a>
+              </div>
+            </aside>
+            <article id="manualBody" class="manual-body panel"><p class="form-hint">Loading the manual…</p></article>
+          </div>
+          <button id="manualTop" class="to-top" title="Back to top" aria-label="Back to top"><svg class="ico"><use href="#i-up"/></svg></button>
+        </section>
+
+        <!-- GLOSSARY -->
+        <section id="tab-glossary" class="tab-content" role="tabpanel">
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">Glossary <span id="glossaryCount" class="badge"></span></h2>
+              <div class="search-box"><svg class="ico"><use href="#i-search"/></svg><input type="search" id="glossarySearch" class="text-input" placeholder="Search terms and definitions…"></div>
+            </div>
+            <div id="glossaryLetters" class="letter-bar" aria-label="Jump to letter"></div>
+            <div id="glossaryList" class="glossary-grid"><p class="form-hint">Loading the glossary…</p></div>
+            <p class="form-hint">The same glossary is chapter 16 of the <a href="docs/LithoPT_User_Manual.pdf" target="_blank" rel="noopener">user manual (PDF)</a>.</p>
+          </div>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <p>LithoPT is released under the MIT License. No data leave your browser. Cite the original calibration paper of every equation you use; the Share dialog lists them for your calculation.</p>
+      </footer>
+    </div>
+  </div>
+
+  <!-- SHARE DIALOG -->
+  <dialog id="shareDialog" class="modal" aria-labelledby="shareTitle">
+    <div class="modal-head">
+      <div class="modal-badge"><svg class="ico"><use href="#i-share"/></svg></div>
+      <div><h2 id="shareTitle">Share this calculation</h2><p>Send a link that reproduces it, a results summary or the citation</p></div>
+      <button class="modal-close" data-close aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <button id="nativeShareBtn" class="btn btn-primary btn-block" hidden><svg class="ico"><use href="#i-share"/></svg><span>Open the system share sheet</span></button>
+
+      <div class="field-block">
+        <div class="field-head"><label for="shareStateUrl">Link to this calculation</label><span id="shareStateInfo" class="badge badge-info"></span></div>
+        <div class="copy-row"><input id="shareStateUrl" class="text-input" readonly><button class="btn btn-secondary btn-sm" data-copy="shareStateUrl"><svg class="ico"><use href="#i-copy"/></svg><span>Copy</span></button></div>
+        <p class="form-hint">Opens LithoPT with the same system, compositions, conditions, options and P–T pair. The data sit after the # in the link, which browsers never send to the web server.</p>
+      </div>
+
+      <div class="field-block">
+        <div class="field-head"><label for="shareAppUrl">Link to LithoPT</label></div>
+        <div class="copy-row"><input id="shareAppUrl" class="text-input" readonly><button class="btn btn-secondary btn-sm" data-copy="shareAppUrl"><svg class="ico"><use href="#i-copy"/></svg><span>Copy</span></button></div>
+      </div>
+
+      <div class="field-block">
+        <div class="field-head"><label for="shareSummary">Results summary</label>
+          <div class="field-actions">
+            <button class="btn btn-ghost btn-sm" data-copy="shareSummary"><svg class="ico"><use href="#i-copy"/></svg><span>Copy</span></button>
+            <button id="shareSummaryDl" class="btn btn-ghost btn-sm"><svg class="ico"><use href="#i-down"/></svg><span>.txt</span></button>
+          </div>
+        </div>
+        <textarea id="shareSummary" class="text-input summary-box" rows="9" readonly></textarea>
+      </div>
+
+      <div class="field-block">
+        <div class="field-head"><label>Share via</label></div>
+        <div class="share-grid" id="shareVia"></div>
+        <p class="form-hint">These open the chosen service with the summary and link filled in; nothing is sent until you confirm there.</p>
+      </div>
+
+      <div class="field-block cite-block">
+        <div class="field-head"><label for="shareCite"><svg class="ico"><use href="#i-quote"/></svg>How to cite these results</label>
+          <button class="btn btn-ghost btn-sm" data-copy="shareCite"><svg class="ico"><use href="#i-copy"/></svg><span>Copy</span></button></div>
+        <textarea id="shareCite" class="text-input summary-box" rows="6" readonly></textarea>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- FEEDBACK DIALOG -->
+  <dialog id="feedbackDialog" class="modal" aria-labelledby="fbTitle">
+    <div class="modal-head">
+      <div class="modal-badge"><svg class="ico"><use href="#i-chat"/></svg></div>
+      <div><h2 id="fbTitle">Feedback &amp; suggestions</h2><p>Report a problem, request an equation or tell us what would help</p></div>
+      <button id="fbHistoryBtn" class="btn btn-ghost btn-sm" type="button"><svg class="ico"><use href="#i-history"/></svg><span id="fbHistoryLabel">History</span></button>
+      <button class="modal-close" data-close aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <form id="fbForm" novalidate>
+        <div class="field-block">
+          <label>How useful is LithoPT for your work?</label>
+          <div class="stars" id="fbStars" role="radiogroup" aria-label="Rating"></div>
+        </div>
+        <div class="field-block">
+          <label>What is it about?</label>
+          <div class="chip-grid" id="fbCats" role="radiogroup" aria-label="Category"></div>
+        </div>
+        <div class="field-block" id="fbEqBlock" hidden>
+          <label for="fbEq">Which equation?</label>
+          <select id="fbEq" class="select-input"></select>
+        </div>
+        <div class="field-block">
+          <div class="field-head"><label for="fbMsg">Details <span class="req">*</span></label><span id="fbCount" class="form-hint">0 / 3000</span></div>
+          <textarea id="fbMsg" class="text-input" rows="5" maxlength="3000" required></textarea>
+        </div>
+        <div class="grid-2col cond-grid">
+          <div class="field-block"><label for="fbName">Name (optional)</label><input id="fbName" class="text-input" autocomplete="name"></div>
+          <div class="field-block"><label for="fbEmail">Email for a reply (optional)</label><input id="fbEmail" type="email" class="text-input" autocomplete="email" placeholder="you@institution.edu"></div>
+        </div>
+        <label class="switch"><input type="checkbox" id="fbAttach" checked><span class="switch-track"></span>Attach the current calculation (system, compositions, options and results)</label>
+        <label class="switch"><input type="checkbox" id="fbEnv" checked><span class="switch-track"></span>Attach version and browser details</label>
+        <details class="fb-preview"><summary>Preview the report</summary><pre id="fbPreview"></pre></details>
+        <p class="form-hint">LithoPT has no server. <strong>Send by email</strong> opens your mail program with the report addressed to the developer; you can also copy or download it and send it any other way. A copy is kept only in this browser.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="fbCopy"><svg class="ico"><use href="#i-copy"/></svg><span>Copy report</span></button>
+          <button type="button" class="btn btn-ghost" id="fbDownload"><svg class="ico"><use href="#i-down"/></svg><span>Download</span></button>
+          <button type="submit" class="btn btn-primary" id="fbSend"><svg class="ico"><use href="#i-send"/></svg><span>Send by email</span></button>
+        </div>
+      </form>
+      <div id="fbHistory" hidden></div>
+    </div>
+  </dialog>
+
+  <div id="toastNotification" class="toast-notification" role="status" aria-live="polite"></div>
+  <script src="lithopt-domains.js"></script>
+  <script src="lithopt-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
