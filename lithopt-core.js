@@ -96,7 +96,7 @@
   /** Clinopyroxene; optional Fe3+ by charge balance, Lindsley (1983, Am. Mineral. 68, 477–493). */
   function clinopyroxene(comp) {
     const c = pyroxene(comp);
-    const Fe3 = Math.min(c.Fe, Math.max(0, c.Al_IV + c.Na - c.Al_VI - c.Cr - 2 * c.Ti));
+    const Fe3 = Math.min(c.Fe, Math.max(0, c.Al_IV + c.Na + (c.K || 0) - c.Al_VI - c.Cr - 2 * c.Ti));
     return { cat: c, Fe3_Lindsley: Fe3, Fe2_Lindsley: c.Fe - Fe3, P: putirkaCpx(c) };
   }
   function orthopyroxene(comp) { const c = pyroxene(comp); return { cat: c, P: putirkaOpx(c) }; }
@@ -739,7 +739,8 @@
     if (pts.length < 3) return { points: pts, failed, N };
     const T = pts.map((p) => p.T_K - 273.15), P = pts.map((p) => p.P_kbar), sT = stats(T), sP = stats(P);
     const cov = T.reduce((acc, t, i) => acc + (t - sT.mean) * (P[i] - sP.mean), 0) / (pts.length - 1);
-    return { points: pts, failed, N, T_C: sT, P_kbar: sP, cov, rho: cov / (sT.sd * sP.sd) };
+    const den = sT.sd * sP.sd; // zero spread (e.g. no perturbation) has no defined correlation
+    return { points: pts, failed, N, T_C: sT, P_kbar: sP, cov, rho: den > 0 ? Math.max(-1, Math.min(1, cov / den)) : NaN };
   }
 
   // ---------------------------------------------------------------------------

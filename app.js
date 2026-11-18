@@ -493,19 +493,22 @@
       download("LithoPT_batch_template.csv", cols.join(",") + "\n" + row.join(",") + "\n", "text/csv");
     });
     $("batchExportBtn").addEventListener("click", () => {
-      const cols = Object.keys(batchRows[0] || {});
+      const cols = [...new Set(batchRows.flatMap((r) => Object.keys(r)))]; // union: rows from different systems have different columns
       // quote where needed; text starting with = + - @ is prefixed so spreadsheets do not run it as a formula
       const esc = (v) => { let t = String(v); if (typeof v === "string" && /^[=+\-@\t\r]/.test(t)) t = "'" + t; return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
       download("LithoPT_batch_results.csv", [cols.join(",")].concat(batchRows.map((r) => cols.map((c) => esc(r[c] ?? "")).join(","))).join("\n"), "text/csv");
     });
   }
   function parseCsv(text) {
+    // one delimiter per file, taken from the header line, so a ";" inside a sample name does not shift columns
+    const first = text.split(/\r?\n/, 1)[0], count = (c) => first.split(c).length;
+    const sep = [",", ";", "\t"].reduce((a, c) => (count(c) > count(a) ? c : a), ",");
     const rows = []; let row = [], cur = "", q = false;
     for (let i = 0; i < text.length; i++) {
       const ch = text[i];
       if (q) { if (ch === '"' && text[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; }
       else if (ch === '"') q = true;
-      else if (ch === "," || ch === ";" || ch === "\t") { row.push(cur); cur = ""; }
+      else if (ch === sep) { row.push(cur); cur = ""; }
       else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(cur); rows.push(row); row = []; cur = ""; }
       else cur += ch;
     }
@@ -518,6 +521,7 @@
     rd.readAsText(file);
   }
   function runBatch(rows) {
+    if (!rows.length) { toast("The file is empty."); return; }
     const head = rows[0].map((h) => h.trim()), phases = Object.keys(PHASE_LABEL);
     const known = [], unknown = [];
     const map = head.map((h) => {
@@ -533,7 +537,7 @@
       map.forEach((m, i) => {
         if (!m) return;
         const v = (r[i] ?? "").trim();
-        if (m.k) { meta[m.k] = m.k === "Sample" ? v : parseFloat(v); return; }
+        if (m.k) { if (m.k === "Sample") meta.Sample = v; else if (v !== "") { const x = Number(v); if (Number.isFinite(x)) meta[m.k] = x; else bad.push(head[i]); } return; }
         const x = Number(v);
         if (v !== "" && !Number.isFinite(x)) { bad.push(head[i]); return; }
         if (v !== "") (sample[m.ph] = sample[m.ph] || (m.ph === "Trace" ? Object.assign({}, TRACE_DEFAULTS) : {}))[m.f] = x;
