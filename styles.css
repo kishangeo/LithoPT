@@ -144,7 +144,7 @@ sub, sup { font-size: 0.72em; }
 .preset-selector-group { display: flex; align-items: center; gap: 0.4rem; position: relative; }
 .preset-selector-group label { position: absolute; left: 0.65rem; color: var(--text-2); display: flex; pointer-events: none; }
 .preset-selector-group label .ico { width: 16px; height: 16px; }
-#presetSelect { width: 290px; max-width: 60vw; padding-left: 2.1rem; font-size: 0.82rem; }
+#presetSelect { width: 380px; max-width: 60vw; padding-left: 2.1rem; font-size: 0.82rem; }
 .btn-group { display: flex; gap: 0.15rem; padding: 0.2rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
 .btn-group .btn { border-color: transparent; }
 

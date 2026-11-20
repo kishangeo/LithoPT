@@ -190,7 +190,7 @@
           for (const f of keys) state.sample[ph][f] = got[f];
           renderPhaseInputs(); toast(`${keys.length} values pasted into ${PHASE_LABEL[ph]}`);
         };
-        (navigator.clipboard && navigator.clipboard.readText ? navigator.clipboard.readText() : Promise.reject()).then(use, () => use(prompt("Paste the analysis here:")));
+        (navigator.clipboard && navigator.clipboard.readText ? navigator.clipboard.readText() : Promise.reject()).then(use, () => pasteDialog("Paste the analysis here", use));
       });
       const head = el("div", { class: "diag-header" }, [el("span", { class: "phase-tag" }, [el("span", { class: "phase-abbr", text: ph }), el("strong", { text: PHASE_LABEL[ph] })]), el("span", { class: "head-badges" }, [catB, sum, ph === "Trace" ? null : paste])]);
       const meter = ph === "Trace" ? null : el("div", { class: "sum-meter", id: `meter_${ph}` }, [el("span")]);
@@ -310,12 +310,13 @@
     if (!tId || !pId) { box.appendChild(el("p", { text: "Enter the phases required by at least one thermometer and one barometer in the Calculator tab." })); return; }
     const opt = { Pmin: readNum("ptPmin") ?? 0, Pmax: readNum("ptPmax") ?? 70, eqOpt: state.opt };
     let det;
-    try { det = L.solvePT(tId, pId, prepared(), opt); } catch (e) { det = { converged: false, reason: e.message }; }
+    const prep = prepared();
+    try { det = L.solvePT(tId, pId, prep, opt); } catch (e) { det = { converged: false, reason: e.message }; }
     const sampleWithOpt = Object.assign({}, state.sample, { cpxFe2: state.opt.cpxFe2 });
     const mc = det.converged ? L.monteCarloPT(tId, pId, sampleWithOpt, Object.assign({}, opt, {
       N: Math.max(100, readNum("mcN") || 1000), rel: (readNum("mcRel") ?? 2) / 100, floor: readNum("mcFloor") ?? 0.02, seed: readNum("mcSeed") ?? 42,
       calibration: $("mcCal").checked })) : null;
-    lastPt = { tId, pId, det, mc, opt, sig: sig() };
+    lastPt = { tId, pId, det, mc, opt, sig: sig(), prep }; $("ptStale").hidden = true;
     const row = (k, v) => box.appendChild(el("div", { class: "conv-item" }, [el("span", { class: "conv-lbl", text: k }), el("span", { class: "conv-val", text: v })]));
     if (!det.converged) { row("Status", `No solution: ${det.reason}`); drawPt(); return; }
     const eT = L.EQ[tId], eP = L.EQ[pId];
@@ -401,7 +402,7 @@
       ctx.textAlign = "left"; return;
     }
     const { tId, pId, det, mc, opt } = lastPt;
-    const s = prepared();
+    const s = lastPt.prep; // the sample that was solved, so the curves always match the stated solution
     const Tc = det.T_K - 273.15, Pc = det.P_kbar;
     const sdT = mc && mc.T_C ? mc.T_C.sd : 20, sdP = mc && mc.P_kbar ? mc.P_kbar.sd : 1;
     const x0 = Tc - Math.max(150, 5 * sdT), x1 = Tc + Math.max(150, 5 * sdT);
@@ -731,6 +732,7 @@
   }
 
   // ------------------------------------------------------------------ advisor: what the entered minerals unlock, and a ranked choice
+  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
   function goTab(id) { document.querySelector(`.tab-btn[data-tab="${id}"]`).click(); }
   function initAdvisor() {
     const chips = $("advChips"), picked = new Set();
@@ -741,7 +743,7 @@
       if (!open.length) { box.appendChild(el("p", { class: "form-hint", text: "Tick the minerals you analysed to see which thermometers and barometers they allow." })); return; }
       const count = (k, kind) => L.EQUATIONS.filter((e) => e.system === k && e.kind === kind).length;
       for (const [k, sy] of open) {
-        const b = el("button", { type: "button", class: "adv-system" }, [el("strong", { text: sy.name }), el("span", { text: `${count(k, "T")} thermometers · ${count(k, "P")} barometers${count(k, "H2O") + count(k, "fO2") ? ` · ${count(k, "H2O") + count(k, "fO2")} other` : ""}` })]);
+        const b = el("button", { type: "button", class: "adv-system" }, [el("strong", { text: sy.name }), el("span", { text: `${plural(count(k, "T"), "thermometer")} · ${plural(count(k, "P"), "barometer")}${count(k, "H2O") + count(k, "fO2") ? ` · ${count(k, "H2O") + count(k, "fO2")} other` : ""}` })]);
         b.addEventListener("click", () => { state.system = k; $("systemSelect").value = k; renderPhaseInputs(); $("systemSelect").scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "center" }); });
         box.appendChild(b);
       }
@@ -901,6 +903,12 @@
       setTimeout(() => { btn.classList.remove("copied"); if (lab) lab.textContent = old; }, 1600);
     };
     return (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(done, () => prompt("Copy this text:", text));
+  }
+  // fallback when clipboard reading is refused: prompt() would drop the line breaks of a table
+  function pasteDialog(title, cb) {
+    const d = $("pasteDialog"), t = $("pasteText"); $("pasteTitle").textContent = title; t.value = "";
+    $("pasteOk").onclick = () => { d.close(); if (t.value.trim()) cb(t.value); };
+    openDialog(d); t.focus();
   }
   function openDialog(d) { d.classList.remove("closing"); if (!d.open) d.showModal(); }
   function closeDialog(d) {
@@ -1211,7 +1219,7 @@
       const tt = document.querySelector(".topbar-title");
       $("pageTitle").textContent = b.dataset.title; $("pageSub").textContent = b.dataset.sub;
       tt.classList.remove("swap"); void tt.offsetWidth; tt.classList.add("swap"); // restart the title animation
-      if (b.dataset.tab === "tab-pt") drawPt();
+      if (b.dataset.tab === "tab-pt") { drawPt(); $("ptStale").hidden = !(lastPt && lastPt.sig !== sig()); }
       if (scrollY > 0) scrollTo(0, 0); // each tab starts at its top, important on phones
     }));
     $("themeToggleBtn").addEventListener("click", () => {
@@ -1227,7 +1235,7 @@
     // each part of the page starts independently, so one failure cannot leave the rest unwired
     for (const init of [initFormula, initBatch, initCatalog, initDiagramTools, initReports, initAdvisor]) { try { init(); } catch (e) { console.error(e); } }
     $("batchPasteBtn").addEventListener("click", () => (navigator.clipboard && navigator.clipboard.readText ? navigator.clipboard.readText() : Promise.reject())
-      .then((t) => ingest(parseCsv(t)), () => { const t = prompt("Paste the table here:"); if (t) ingest(parseCsv(t)); }));
+      .then((t) => ingest(parseCsv(t)), () => pasteDialog("Paste the table here (one row per line)", (t) => ingest(parseCsv(t)))));
     $("runPtBtn").addEventListener("click", () => busy($("runPtBtn"), runPt));
     $("runEnsBtn").addEventListener("click", () => busy($("runEnsBtn"), runEnsemble));
     for (const [k, m] of Object.entries(L.DEPTH_MODELS)) $("depthModel").appendChild(el("option", { value: k, text: m.name }));

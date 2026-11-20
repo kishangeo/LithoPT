@@ -223,6 +223,7 @@
                 <div class="form-group"><label for="depthRho">Density (constant model)</label><div class="input-unit"><input type="number" id="depthRho" class="text-input" value="2700" step="50"><span>kg/m³</span></div></div>
               </div>
               <button id="runPtBtn" class="btn btn-primary btn-block btn-lg"><svg class="ico"><use href="#i-play"/></svg><span>Solve P–T</span></button>
+              <p id="ptStale" class="form-hint" role="status" hidden><strong>Inputs changed since this solution.</strong> Click Solve P–T to refresh it.</p>
               <div class="convergence-card" id="ptSummary"></div>
               <div class="report-card">
                 <h3 class="section-heading">Interpretation report</h3>
@@ -406,6 +407,16 @@
   </dialog>
 
   <!-- FEEDBACK DIALOG -->
+  <dialog id="pasteDialog" class="modal" aria-labelledby="pasteTitle">
+    <div class="modal-head">
+      <div><h2 id="pasteTitle">Paste</h2><p>The browser did not allow reading the clipboard; paste here with Ctrl/⌘+V</p></div>
+      <button class="modal-close" data-close aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <textarea id="pasteText" class="text-input" rows="10" spellcheck="false" style="width:100%;font-family:var(--font-mono);font-size:0.78rem"></textarea>
+      <button id="pasteOk" class="btn btn-primary btn-block" type="button"><span>Use pasted text</span></button>
+    </div>
+  </dialog>
   <dialog id="feedbackDialog" class="modal" aria-labelledby="fbTitle">
     <div class="modal-head">
       <div class="modal-badge"><svg class="ico"><use href="#i-chat"/></svg></div>
