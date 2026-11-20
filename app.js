@@ -102,6 +102,7 @@
       if (k < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
+    setTimeout(() => { node.textContent = final; }, 700); // frames pause in background tabs; the final value must not depend on them
   }
   // Show a spinner on the button while a synchronous job runs (lets the browser paint first).
   function busy(btn, fn) {
@@ -1184,7 +1185,10 @@
     const setToc = (open) => { $("manualTocToggle").setAttribute("aria-expanded", open); document.querySelector(".manual-toc").classList.toggle("toc-open", open); };
     $("manualTocToggle").addEventListener("click", () => setToc($("manualTocToggle").getAttribute("aria-expanded") !== "true"));
     // search: list matching passages; click to jump
-    let timer;
+    let timer, matches = [], cur = -1;
+    const step = (d) => { if (!matches.length) return; cur = (cur + d + matches.length) % matches.length; $("manualPos").textContent = `${cur + 1} / ${matches.length}`; scrollToEl(matches[cur].closest("tr") || matches[cur]); };
+    $("manualPrev").addEventListener("click", () => step(-1)); $("manualNext").addEventListener("click", () => step(1));
+    $("manualSearch").addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); step(ev.shiftKey ? -1 : 1); } });
     $("manualSearch").addEventListener("input", (ev) => {
       clearTimeout(timer);
       timer = setTimeout(() => {
@@ -1192,8 +1196,9 @@
         toc.querySelectorAll(".search-hit").forEach((x) => x.remove());
         toc.classList.toggle("searching", q.length >= 2);
         hits.textContent = "";
-        if (q.length < 2) return;
+        if (q.length < 2) { matches = []; $("manualNav").hidden = true; return; }
         const found = [...body.querySelectorAll("p, li, td, h2, h3, h4, .m-eq")].filter((n) => n.textContent.toLowerCase().includes(q));
+        matches = found; cur = -1; $("manualNav").hidden = !found.length; $("manualPos").textContent = found.length ? `0 / ${found.length}` : "";
         hits.textContent = found.length ? `${found.length} passage${found.length > 1 ? "s" : ""} found${found.length > 40 ? " (first 40 shown)" : ""}` : "No matches";
         for (const n of found.slice(0, 40)) {
           const t = n.textContent, i = t.toLowerCase().indexOf(q), from = Math.max(0, i - 40);
@@ -1287,7 +1292,9 @@
     }));
     $("themeToggleBtn").addEventListener("click", () => {
       const t = isDark() ? "light" : "dark";
-      document.documentElement.dataset.theme = t;
+      const root = document.documentElement;
+      root.classList.add("theme-switching"); root.dataset.theme = t; // switch at once: colour transitions stall when no frames are drawn
+      setTimeout(() => root.classList.remove("theme-switching"), 50);
       try { localStorage.setItem("lithopt-theme", t); } catch (e) { /* storage unavailable: theme lasts for this page only */ }
       drawPt();
     });

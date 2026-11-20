@@ -302,6 +302,8 @@ select[multiple] option { padding: 0.35rem 0.5rem; border-radius: 5px; }
 /* ---------------------------------------------------------------- tables */
 .table-responsive { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .table-scroll { max-height: 68vh; overflow: auto; }
+.table-scroll .data-table th { white-space: normal; min-width: 7rem; }
+.theme-switching, .theme-switching *, .theme-switching *::before, .theme-switching *::after { transition: none !important; }
 .data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.84rem; text-align: left; }
 .data-table th {
   position: sticky; top: 0; z-index: 1; background: var(--surface-2); color: var(--muted); font-size: 0.7rem; font-weight: 650;

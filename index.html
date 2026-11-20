@@ -334,7 +334,7 @@
           <div class="manual-layout">
             <aside class="manual-toc panel">
               <div class="search-box"><svg class="ico"><use href="#i-search"/></svg><input type="search" id="manualSearch" class="text-input" placeholder="Search the manual…"></div>
-              <p id="manualHits" class="form-hint"></p>
+              <p class="form-hint manual-hitbar"><span id="manualHits"></span> <span id="manualNav" hidden><button type="button" id="manualPrev" class="btn btn-ghost btn-sm" aria-label="Previous match">↑</button> <span id="manualPos" aria-live="polite"></span> <button type="button" id="manualNext" class="btn btn-ghost btn-sm" aria-label="Next match">↓</button></span></p>
               <button type="button" id="manualTocToggle" class="btn btn-secondary btn-block toc-toggle" aria-expanded="false"><svg class="ico"><use href="#i-book"/></svg><span>Contents</span></button>
               <nav id="manualToc" aria-label="Manual contents"></nav>
               <div class="manual-actions">
