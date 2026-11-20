@@ -395,18 +395,24 @@
       : { bg: "#ffffff", plot: "#faf9f7", fg: "#1d1c1a", mute: "#6b6963", grid: "#e3e1db", T: "#c2410c", P: "#1d4ed8", mc: "rgba(90,88,82,0.24)", ell: "#1d1c1a" };
     const FONT = '"Segoe UI", system-ui, -apple-system, sans-serif';
     ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
-    if (!lastPt || !lastPt.det.converged) {
+    const sol = !!(lastPt && lastPt.det.converged), bp = $("ptBatch").checked ? batchPts.filter((q) => q.ok) : [];
+    if (!sol && !bp.length) {
       ctx.fillStyle = C.mute; ctx.textAlign = "center"; ctx.font = `500 15px ${FONT}`;
       ctx.fillText(lastPt ? "No intersection found for this pair" : "Solve P–T to draw the diagram", W / 2, H / 2 - 4);
       ctx.font = `12px ${FONT}`; ctx.fillText("Curves, Monte Carlo cloud and ensemble pairs appear here", W / 2, H / 2 + 18);
       ctx.textAlign = "left"; return;
     }
-    const { tId, pId, det, mc, opt } = lastPt;
-    const s = lastPt.prep; // the sample that was solved, so the curves always match the stated solution
+    const { tId, pId, det, mc, opt } = sol ? lastPt : { det: {}, opt: { Pmin: 0, Pmax: 70 } };
+    const s = sol && lastPt.prep; // the sample that was solved, so the curves always match the stated solution
     const Tc = det.T_K - 273.15, Pc = det.P_kbar;
     const sdT = mc && mc.T_C ? mc.T_C.sd : 20, sdP = mc && mc.P_kbar ? mc.P_kbar.sd : 1;
-    const x0 = Tc - Math.max(150, 5 * sdT), x1 = Tc + Math.max(150, 5 * sdT);
-    const y0 = Math.max(opt.Pmin, Pc - Math.max(5, 5 * sdP)), y1 = Math.min(opt.Pmax, Pc + Math.max(5, 5 * sdP));
+    let x0 = sol ? Tc - Math.max(150, 5 * sdT) : Infinity, x1 = sol ? Tc + Math.max(150, 5 * sdT) : -Infinity;
+    let y0 = sol ? Math.max(opt.Pmin, Pc - Math.max(5, 5 * sdP)) : Infinity, y1 = sol ? Math.min(opt.Pmax, Pc + Math.max(5, 5 * sdP)) : -Infinity;
+    if (bp.length) { // widen the frame to include every batch sample and its 2σ ellipse
+      const ts = bp.map((q) => q.T_C), ps = bp.map((q) => q.P_kbar), eT = Math.max(...bp.map((q) => 2 * q.sdT || 0)), eP = Math.max(...bp.map((q) => 2 * q.sdP || 0));
+      x0 = Math.min(x0, Math.min(...ts) - Math.max(40, eT)); x1 = Math.max(x1, Math.max(...ts) + Math.max(40, eT));
+      y0 = Math.max(0, Math.min(y0, Math.min(...ps) - Math.max(1, eP))); y1 = Math.max(y1, Math.max(...ps) + Math.max(1, eP));
+    }
     const m = { l: 68, r: 22, t: 22, b: 58 };
     const X = (t) => m.l + ((t - x0) / (x1 - x0)) * (W - m.l - m.r), Y = (p) => H - m.b - ((p - y0) / (y1 - y0)) * (H - m.t - m.b);
     ptAxes = { x0, x1, y0, y1, m, W, H };
@@ -437,6 +443,7 @@
       ctx.setLineDash([]);
     }
     const n = 80, cond = { opt: state.opt }, nk = Math.max(1, Math.round(n * k));
+    if (sol) {
     curve([...Array(nk + 1)].map((_, i) => { const p = y0 + ((y1 - y0) * i) / n; return [L.evaluate(tId, s, Object.assign({ P_kbar: p }, cond)) - 273.15, p]; }), C.T);
     curve([...Array(nk + 1)].map((_, i) => { const t = x0 + ((x1 - x0) * i) / n; return [t, L.evaluate(pId, s, Object.assign({ T_K: t + 273.15 }, cond))]; }), C.P);
     if (mc && mc.points) {
@@ -456,7 +463,22 @@
     const sx = X(Tc), sy = Y(Pc), halo = 7 + 9 * k;
     ctx.fillStyle = "rgba(16,185,129,0.18)"; ctx.beginPath(); ctx.arc(sx, sy, halo, 0, 2 * Math.PI); ctx.fill();
     ctx.fillStyle = "#10b981"; ctx.strokeStyle = C.bg; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx, sy, 5.5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+    }
+    if (bp.length) { // batch samples: 1σ ellipses, optional path in file order, numbered markers
+      const BC = "#8b5cf6";
+      ctx.globalAlpha = k;
+      for (const q of bp) if (q.mc && q.mc.T_C) drawEllipse(ctx, X, Y, q.mc, 1, BC);
+      if ($("ptBatchPath").checked && bp.length > 1) {
+        ctx.strokeStyle = BC; ctx.lineWidth = 1.6; ctx.beginPath(); bp.forEach((q, i) => (i ? ctx.lineTo(X(q.T_C), Y(q.P_kbar)) : ctx.moveTo(X(q.T_C), Y(q.P_kbar)))); ctx.stroke();
+        const a = bp[bp.length - 2], b = bp[bp.length - 1], ang = Math.atan2(Y(b.P_kbar) - Y(a.P_kbar), X(b.T_C) - X(a.T_C)), hx = X(b.T_C) - 9 * Math.cos(ang), hy = Y(b.P_kbar) - 9 * Math.sin(ang);
+        ctx.fillStyle = BC; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx - 11 * Math.cos(ang - 0.4), hy - 11 * Math.sin(ang - 0.4)); ctx.lineTo(hx - 11 * Math.cos(ang + 0.4), hy - 11 * Math.sin(ang + 0.4)); ctx.closePath(); ctx.fill();
+      }
+      ctx.font = `600 10px ${FONT}`; ctx.textAlign = "center";
+      bp.forEach((q) => { ctx.fillStyle = BC; ctx.strokeStyle = C.bg; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X(q.T_C), Y(q.P_kbar), 8, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); ctx.fillStyle = "#fff"; ctx.fillText(String(q.n), X(q.T_C), Y(q.P_kbar) + 3.5); });
+      ctx.textAlign = "left"; ctx.globalAlpha = 1;
+    }
     ctx.restore();
+    if (!sol) return;
 
     // legend box (kept inside the canvas so exported PNGs are self-explanatory)
     ctx.font = `13px ${FONT}`;
@@ -498,6 +520,21 @@
     }
     box.appendChild(grid);
     sel.addEventListener("change", run);
+    const inputs = [...grid.querySelectorAll("input")], codeOf = (name) => Object.keys(PHASE_LABEL).find((k) => PHASE_LABEL[k] === name);
+    $("sfFromCalc").addEventListener("click", () => {
+      const ph = Object.keys(state.sample).find((k) => PHASE_LABEL[k] === sel.value && Object.values(state.sample[k]).some((v) => v > 0))
+        || Object.keys(state.sample).find((k) => L.MINERAL_BASIS[PHASE_LABEL[k]] && Object.values(state.sample[k]).some((v) => v > 0));
+      if (!ph) { toast("The calculator has no mineral analysis with a structural-formula basis"); return; }
+      sel.value = PHASE_LABEL[ph];
+      L.MINERAL_OXIDES.forEach((o, i) => { const v = state.sample[ph][o]; vals[o] = v || 0; inputs[i].value = v ? v : ""; });
+      run(); toast(`${PHASE_LABEL[ph]} taken from the calculator`);
+    });
+    $("sfToCalc").addEventListener("click", () => {
+      const ph = codeOf(sel.value);
+      if (!ph || !state.sample[ph]) { toast(`The current system has no ${sel.value.toLowerCase()} input; choose a system that uses it first`); return; }
+      for (const o of L.MINERAL_OXIDES) if (o in state.sample[ph] || vals[o]) state.sample[ph][o] = vals[o] || 0;
+      renderPhaseInputs(); goTab("tab-calc"); toast(`${sel.value} sent to the calculator`);
+    });
     function run() {
       const body = $("sfBody"); body.textContent = "";
       try {
@@ -515,7 +552,31 @@
   }
 
   // ------------------------------------------------------------------ batch
-  let batchRows = [], batchSamples = [];
+  let batchRows = [], batchSamples = [], batchPts = [];
+  // Each sample uses the pair selected in the P–T tab when its phases allow it, otherwise its best-ranked pair; 200 Monte Carlo draws give the 1σ ellipse.
+  function plotBatch() {
+    const tSel = $("ptThermo").value, pSel = $("ptBaro").value, opt = { Pmin: readNum("ptPmin") ?? 0, Pmax: readNum("ptPmax") ?? 70, eqOpt: state.opt };
+    const has = (id, smp) => id && L.SYSTEMS[L.EQ[id].system].phases.every((ph) => smp[ph]);
+    batchPts = batchSamples.map((b, i) => {
+      const q = { n: i + 1, name: (b && b.name) || `row ${i + 1}`, ok: false };
+      if (!b) return q;
+      try {
+        let tId = tSel, pId = pSel;
+        if (!has(tId, b.sample) || !has(pId, b.sample)) {
+          const top = L.recommendModels(b.sample, Object.assign({ P_kbar: b.P, T_K: b.T + 273.15 }, opt)).pairs[0];
+          if (!top) return q; tId = top.T; pId = top.P;
+        }
+        const det = L.solvePT(tId, pId, L.prepare(b.sample), opt); if (!det.converged) return q;
+        const mc = L.monteCarloPT(tId, pId, b.sample, Object.assign({ N: 200, rel: (readNum("mcRel") ?? 2) / 100, floor: readNum("mcFloor") ?? 0.02, seed: readNum("mcSeed") ?? 42, calibration: $("mcCal").checked }, opt));
+        return Object.assign(q, { ok: true, tId, pId, T_C: det.T_K - 273.15, P_kbar: det.P_kbar, mc, sdT: mc.T_C && mc.T_C.sd, sdP: mc.P_kbar && mc.P_kbar.sd });
+      } catch (e) { return q; }
+    });
+    const list = $("ptBatchList"); list.textContent = "";
+    for (const q of batchPts) list.appendChild(el("li", { text: q.ok ? `${q.n}. ${q.name}: ${fmt(q.T_C)} ± ${fmt(q.sdT)} °C, ${fmt(q.P_kbar, 2)} ± ${fmt(q.sdP, 2)} kbar (${L.EQ[q.tId].name} + ${L.EQ[q.pId].name})` : `${q.n}. ${q.name}: no P–T solution` }));
+    $("ptBatchBox").hidden = false; $("ptBatch").checked = true;
+    goTab("tab-pt"); drawPt();
+    toast(`${batchPts.filter((q) => q.ok).length} of ${batchPts.length} samples plotted on the P–T diagram`);
+  }
   function initBatch() {
     const dz = $("csvDropzone"), fi = $("csvFileInput");
     dz.addEventListener("click", () => fi.click());
@@ -615,7 +676,7 @@
       b.addEventListener("click", () => openBatchSample(i));
       return el("td", {}, [b]);
     }))));
-    $("batchExportBtn").disabled = batchRows.length === 0;
+    $("batchExportBtn").disabled = batchRows.length === 0; $("batchPlotBtn").disabled = !batchSamples.some(Boolean);
   }
 
 
@@ -624,7 +685,7 @@
   const sig = () => JSON.stringify([state.sample, state.opt]); // lets results be recognised as stale after the inputs change
   /** Column or row label → field key (SiO2, FeOt, …) or null. Fe2O3 is returned as "Fe2O3" and converted by the caller. */
   function oxKey(h) {
-    const t = String(h).trim().replace(/\s*\(?wt\.?\s*%\)?$/i, "").replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080));
+    const t = String(h).trim().replace(/[\s_]*\(?wt\.?\s*%\)?$/i, "").replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080));
     if (/^fe2o3/i.test(t)) return "Fe2O3";
     if (/^feo/i.test(t)) return "FeOt";
     return L.LIQUID_OXIDES.concat(["H2O"]).find((o) => o.toLowerCase() === t.toLowerCase()) || null;
@@ -673,6 +734,8 @@
     const cv = $("ptCanvas"), ro = $("ptReadout");
     ro.textContent = PT_HINT;
     $("ptGeotherms").addEventListener("change", () => drawPt());
+    $("ptBatch").addEventListener("change", () => drawPt()); $("ptBatchPath").addEventListener("change", () => drawPt());
+    $("batchPlotBtn").addEventListener("click", () => busy($("batchPlotBtn"), plotBatch));
     $("exportSvgBtn").addEventListener("click", () => {
       const W = cv.width / PT_SCALE, H = cv.height / PT_SCALE, rec = svgContext(W, H, cv.getContext("2d"));
       drawPt(1, rec.ctx, true); // light colours: figures are printed
@@ -827,7 +890,7 @@
     if (!rows.length) { toast("The file is empty."); return; }
     const head = rows[0].map((h) => String(h).trim());
     if (head.some((h) => PHASE_LABEL[h.split("_")[0]] && h.includes("_"))) { runBatch(rows); return; }
-    const ox = head.map(oxKey), iPhase = head.findIndex((h) => /^(phase|mineral)s?$/i.test(h)), iSample = head.findIndex((h) => /^sample/i.test(h));
+    const ox = head.map(oxKey), iPhase = head.findIndex((h) => /^(phase|mineral)s?$/i.test(h)), iSample = head.findIndex((h) => /^(sample|point|analysis|label|id\b)/i.test(h));
     if (ox.filter(Boolean).length < 3) { runBatch(rows); return; } // not an oxide table: let the batch report the unknown columns
     const iP = head.indexOf("P_kbar"), iT = head.indexOf("T_C"), items = [];
     for (const r of rows.slice(1)) {
@@ -1253,7 +1316,10 @@
       try { restore(JSON.parse(decodeURIComponent(h[1]))); toast("Calculation restored from link"); } catch (e) { toast("Link could not be read"); }
       return true;
     };
-    if (!fromHash()) loadPreset("pelite");
+    const saved = store.get("lithopt-session", null);
+    if (!fromHash()) { try { if (!saved) throw 0; restore(saved); toast("Restored your last session"); } catch (e) { loadPreset("pelite"); } }
+    const keep = () => store.set("lithopt-session", snapshot());
+    addEventListener("pagehide", keep); document.addEventListener("visibilitychange", () => document.hidden && keep());
     // first-run guide: shown until dismissed (remembered per browser)
     const guide = $("firstRun"), seen = () => { try { return localStorage.getItem("lithopt-guide") === "1"; } catch (e) { return false; } };
     const hideGuide = () => { guide.hidden = true; try { localStorage.setItem("lithopt-guide", "1"); } catch (e) { /* not remembered */ } };

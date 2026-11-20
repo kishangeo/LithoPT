@@ -253,6 +253,11 @@
                 </div>
               </div>
               <label class="switch"><input type="checkbox" id="ptGeotherms"><span class="switch-track"></span>Show reference gradients (10, 20, 35 °C/km for the density of the depth model)</label>
+              <div id="ptBatchBox" hidden>
+                <label class="switch"><input type="checkbox" id="ptBatch"><span class="switch-track"></span>Show batch samples (numbered, 1σ Monte Carlo ellipses)</label>
+                <label class="switch"><input type="checkbox" id="ptBatchPath"><span class="switch-track"></span>Join samples in file order as a P–T path</label>
+                <details><summary class="form-hint">Batch solutions</summary><ol id="ptBatchList" class="form-hint" style="list-style:none;padding-left:0"></ol></details>
+              </div>
               <div class="canvas-wrapper"><canvas id="ptCanvas" width="1400" height="1040" aria-label="P–T diagram"></canvas></div>
               <p class="form-hint pt-readout" id="ptReadout" aria-live="off"></p>
               <div class="legend-container">
@@ -272,6 +277,7 @@
             <div class="panel">
               <div class="panel-header"><h2 class="panel-title">Oxide analysis</h2></div>
               <div class="form-group"><label for="sfMineral">Mineral</label><select id="sfMineral" class="select-input select-large"></select></div>
+              <div class="action-buttons-group"><button id="sfFromCalc" type="button" class="btn btn-ghost btn-sm"><span>Take from Calculator</span></button><button id="sfToCalc" type="button" class="btn btn-ghost btn-sm"><span>Send to Calculator</span></button></div>
               <div id="sfInputs" class="phase-card"></div>
               <p class="form-hint">Fe<sup>3+</sup> is estimated with Droop (1987) only for minerals with a fixed ideal cation total; biotite and amphibole are reported with all Fe as Fe<sup>2+</sup> because their vacancy and OH contents make charge balance underdetermined.</p>
             </div>
@@ -293,6 +299,7 @@
               <div class="action-buttons-group">
                 <button id="batchPasteBtn" class="btn btn-sm btn-ghost" type="button"><span>Paste table</span></button>
                 <button id="batchTemplateBtn" class="btn btn-sm btn-ghost"><svg class="ico"><use href="#i-down"/></svg><span>Download template</span></button>
+                <button id="batchPlotBtn" class="btn btn-sm btn-ghost" disabled><svg class="ico"><use href="#i-pt"/></svg><span>Plot on P–T diagram</span></button>
                 <button id="batchExportBtn" class="btn btn-sm btn-success" disabled><svg class="ico"><use href="#i-table"/></svg><span>Export results</span></button>
               </div>
             </div>

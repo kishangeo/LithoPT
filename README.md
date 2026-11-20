@@ -49,6 +49,11 @@ The calibration-domain check (shrinkage Mahalanobis D² of an analysis from an e
 5. *Share* gives a link that reproduces the calculation exactly, and the list of papers to cite.
 6. *Interpretation report* (below the results in either tab) explains the result in words and downloads it as Markdown or prints it to PDF.
 
+### New in 4.2
+
+- **Batch on the P–T diagram**: every batch sample solved and plotted with its 1σ Monte Carlo ellipse, optionally joined as a P–T path.
+- **Convenience**: the last session is restored on the next visit; analyses move between the Calculator and Structural formula tabs; microprobe headers such as `Point_ID` and `Al2O3_wt%` are recognised.
+
 ### New in 4.1
 
 - **Interpretation report**: compositions and stoichiometric flags, equilibrium tests, the type and limits of each equation, calibration-domain status, an uncertainty budget that separates analytical from calibration error (two Monte Carlo runs), intersection geometry, comparison with all other pairs, the P–T diagram, citations and the share link.

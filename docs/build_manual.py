@@ -163,7 +163,7 @@ H2("2.2 The five tabs")
 TABLE([["Tab", "Purpose"],
        ["Calculator", "Choose an equilibrium system, enter the P (for thermometers) and T (for barometers) at which to evaluate, and enter oxide analyses of the phases. All equations of the system are evaluated side by side with their SEE, calibration-domain status and verification status. Equilibrium tests and phase components are shown below."],
        ["P–T solution & Monte Carlo", "Pair any thermometer with any barometer whose phases are available; LithoPT finds their intersection, propagates uncertainty by Monte Carlo simulation, converts P to depth and plots the result. The model-ensemble button solves all compatible pairs."],
-       ["Structural formula", "Cations per formula unit for garnet, pyroxenes, olivine, spinel, feldspars, biotite and amphibole, with Droop (1987) Fe³⁺ where applicable."],
+       ["Structural formula", "Cations per formula unit for garnet, pyroxenes, olivine, spinel, feldspars, biotite and amphibole, with Droop (1987) Fe³⁺ where applicable. *Take from Calculator* and *Send to Calculator* copy an analysis between the two tabs."],
        ["Batch (CSV)", "Upload many samples at once (CSV, text, Excel .xlsx or a pasted table); every applicable equation is evaluated for every row; results can be exported and each sample opened in the calculator."],
        ["Equations & references", "Searchable catalogue of all equations with system, type, SEE, calibration range, verification status, calibration dataset and DOI."]],
       [3.5, 13])
@@ -402,13 +402,15 @@ P("Unrecognised columns are listed rather than guessed; rows with non-numeric va
 # ============================================================== 13 reproducibility
 P("**Other inputs.** Excel workbooks (.xlsx; the first worksheet, read in the browser with no external library; legacy .xls files are not read) and tables pasted with *Paste table* are accepted. A table with one analysis per row — oxide columns, optionally `Sample`, `Phase` or `Mineral`, `P_kbar` and `T_C` — is shown first as a preview: the mineral of each row is taken from the Phase column (common names and abbreviations are recognised) or estimated from its stoichiometry, with a confidence score, and can be changed or skipped. Rows with the same Sample name form one sample; several analyses of the same mineral are averaged. FeO, FeO* and FeOt are read as total iron; Fe₂O₃ is converted to FeO and added.")
 P("**Stoichiometric mineral estimate.** For each candidate mineral the analysis is recalculated on that mineral's oxygen basis (12 O garnet, 6 O pyroxenes, 4 O olivine and spinel, 8 O feldspars, 11 O micas, 23 O amphibole, 3 O ilmenite) and compared with windows for Si, Al, the main cation groups, the cation sum and the analytical total. Each criterion scores 1 inside its window, falling to 0 half a window-width outside; the score is the mean of the minimum and the average. Analyses scoring below 0.85 for every mineral are treated as glass or whole rock. Glass cannot always be told from amphibole or pyroxene by stoichiometry alone, which is why the preview must be confirmed.")
-P("Click a sample name in the results table to open that sample in the calculator.")
+P("Click a sample name in the results table to open that sample in the calculator. Columns such as `Point_ID`, `Analysis` or `Label` are read as the sample name, and oxide headers with units (`Al2O3_wt%`, `SiO2 (wt%)`, `FeO_tot`) are recognised.")
+P("**Batch samples on the P–T diagram.** *Plot on P–T diagram* solves every sample with the thermometer–barometer pair selected in the P–T tab, or, where the sample lacks a phase of that pair, with its highest-ranked pair (Section 2.5). Each solution receives 200 Monte Carlo draws with the settings of the P–T tab, and is plotted as a numbered point with its 1σ ellipse; the pair used and the result are listed under *Batch solutions*. *Join samples in file order* draws a P–T path, for example from core to rim. Different samples may use different pairs, which the list states; for a path, give every sample the phases of one pair.")
 
 H1("13. Reproducibility, privacy and offline use")
 B(["**Share link**: the complete state (compositions, system, equations, options) is encoded in the URL fragment (#state=…). Fragments are never sent to the web server; only the recipient's browser reads them. Opening the link restores the calculation exactly.",
    "**JSON state**: *Save JSON* and *Load JSON* store and restore the same state as a file. On loading, only recognised phases and numeric fields are accepted.",
    "**Seeds**: Monte Carlo simulations are reproducible from the random seed shown in the interface.",
    "**Offline**: a service worker caches the application after the first visit; updates are fetched when online.",
+   "**Last session**: when the page is closed or hidden, the current state is kept in this browser's local storage and restored on the next visit; a share link or an example replaces it.",
    "**Privacy**: all calculations run locally in the browser; no analyses are uploaded."])
 H2("13.4 Scripting with Node.js")
 CODE('''const L = require("./lithopt-core.js");
