@@ -948,3 +948,11 @@ th[title] { text-decoration: underline dotted var(--border-strong); text-underli
   body.printing-report #printReport h2, body.printing-report #printReport h3 { break-after: avoid; }
   @page { margin: 16mm; }
 }
+
+/* phones: phase-card header stacks (name, then Fe3+ / totals / paste), canvas read-out stays legible */
+@media (max-width: 640px) {
+  .diag-header { flex-wrap: wrap; }
+  .diag-header .head-badges { width: 100%; justify-content: flex-start; }
+  .fe3-pill { flex: 1 1 100%; }
+  .fe3-select { flex: 1; }
+}

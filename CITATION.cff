@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use LithoPT, please cite the software paper and the original calibration papers of every equation used."
 title: "LithoPT: browser-based thermobarometry with calibration-domain diagnostics and model-choice uncertainty"
-version: 4.3.0
+version: 4.3.1
 license: MIT
 authors:
   - family-names: Tiwari

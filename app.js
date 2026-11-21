@@ -9,6 +9,7 @@
   const $ = (id) => document.getElementById(id);
   const el = (tag, props = {}, children = []) => {
     const n = document.createElement(tag);
+    if (props.type === "number" && !("inputmode" in props)) n.setAttribute("inputmode", "decimal"); // decimal keypad on phones
     for (const [k, v] of Object.entries(props)) {
       if (k === "text") n.textContent = v;
       else if (k === "class") n.className = v;
@@ -397,12 +398,13 @@
       ? { bg: "#1c1c1a", plot: "#20201e", fg: "#ecebe7", mute: "#9a9891", grid: "#333330", T: "#f08a4b", P: "#7aa2f7", mc: "rgba(190,188,180,0.32)", ell: "#ecebe7" }
       : { bg: "#ffffff", plot: "#faf9f7", fg: "#1d1c1a", mute: "#6b6963", grid: "#e3e1db", T: "#c2410c", P: "#1d4ed8", mc: "rgba(90,88,82,0.24)", ell: "#1d1c1a" };
     const FONT = '"Segoe UI", system-ui, -apple-system, sans-serif';
+    const zf = target ? 1 : Math.min(1.8, Math.max(1, 560 / (cv.clientWidth || 700))); // larger text on narrow screens; exports stay at 1
     ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
     const sol = !!(lastPt && lastPt.det.converged), bp = $("ptBatch").checked ? batchPts.filter((q) => q.ok) : [];
     if (!sol && !bp.length) {
-      ctx.fillStyle = C.mute; ctx.textAlign = "center"; ctx.font = `500 15px ${FONT}`;
+      ctx.fillStyle = C.mute; ctx.textAlign = "center"; ctx.font = `500 ${15 * zf}px ${FONT}`;
       ctx.fillText(lastPt ? "No intersection found for this pair" : "Solve P–T to draw the diagram", W / 2, H / 2 - 4);
-      ctx.font = `12px ${FONT}`; ctx.fillText("Curves, Monte Carlo cloud and ensemble pairs appear here", W / 2, H / 2 + 18);
+      ctx.font = `${12 * zf}px ${FONT}`; ctx.fillText("Curves, Monte Carlo cloud and ensemble pairs appear here", W / 2, H / 2 + 18);
       ctx.textAlign = "left"; return;
     }
     const { tId, pId, det, mc, opt } = sol ? lastPt : { det: {}, opt: { Pmin: 0, Pmax: 70 } };
@@ -416,18 +418,18 @@
       x0 = Math.min(x0, Math.min(...ts) - Math.max(40, eT)); x1 = Math.max(x1, Math.max(...ts) + Math.max(40, eT));
       y0 = Math.max(0, Math.min(y0, Math.min(...ps) - Math.max(1, eP))); y1 = Math.max(y1, Math.max(...ps) + Math.max(1, eP));
     }
-    const m = { l: 68, r: 22, t: 22, b: 58 };
+    const m = { l: 68 * zf, r: 22, t: 22, b: 58 * zf };
     const X = (t) => m.l + ((t - x0) / (x1 - x0)) * (W - m.l - m.r), Y = (p) => H - m.b - ((p - y0) / (y1 - y0)) * (H - m.t - m.b);
     ptAxes = { x0, x1, y0, y1, m, W, H };
     ctx.fillStyle = C.plot; ctx.fillRect(m.l, m.t, W - m.l - m.r, H - m.t - m.b);
-    ctx.strokeStyle = C.grid; ctx.fillStyle = C.mute; ctx.font = `13px ${FONT}`; ctx.lineWidth = 1;
+    ctx.strokeStyle = C.grid; ctx.fillStyle = C.mute; ctx.font = `${13 * zf}px ${FONT}`; ctx.lineWidth = 1;
     for (let i = 0; i <= 5; i++) {
       const t = x0 + ((x1 - x0) * i) / 5, p = y0 + ((y1 - y0) * i) / 5;
       ctx.beginPath(); ctx.moveTo(X(t), m.t); ctx.lineTo(X(t), H - m.b); ctx.moveTo(m.l, Y(p)); ctx.lineTo(W - m.r, Y(p)); ctx.stroke();
-      ctx.textAlign = "center"; ctx.fillText(t.toFixed(0), X(t), H - m.b + 17);
+      ctx.textAlign = "center"; ctx.fillText(t.toFixed(0), X(t), H - m.b + 17 * zf);
       ctx.textAlign = "right"; ctx.fillText(p.toFixed(1), m.l - 8, Y(p) + 4);
     }
-    ctx.fillStyle = C.fg; ctx.font = `600 14px ${FONT}`; ctx.textAlign = "center";
+    ctx.fillStyle = C.fg; ctx.font = `600 ${14 * zf}px ${FONT}`; ctx.textAlign = "center";
     ctx.fillText("Temperature (°C)", m.l + (W - m.l - m.r) / 2, H - 14);
     ctx.save(); ctx.translate(16, m.t + (H - m.t - m.b) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText("Pressure (kbar)", 0, 0); ctx.restore();
     ctx.textAlign = "left";
@@ -437,7 +439,7 @@
       for (const [t, p] of pts) { if (!Number.isFinite(t) || !Number.isFinite(p)) { st = false; continue; } st ? ctx.lineTo(X(t), Y(p)) : ctx.moveTo(X(t), Y(p)); st = true; } ctx.stroke(); };
     if ($("ptGeotherms").checked) { // straight reference gradients from a 0 °C surface, for the density of the depth model
       const kbarPerKm = ((readNum("depthRho") || 2700) * 9.81) / 1e5;
-      ctx.font = `11px ${FONT}`; ctx.lineWidth = 1; ctx.setLineDash([2, 4]);
+      ctx.font = `${11 * zf}px ${FONT}`; ctx.lineWidth = 1; ctx.setLineDash([2, 4]);
       for (const G of [10, 20, 35]) {
         const slope = kbarPerKm / G, tB = Math.min(x1, y1 / slope);
         ctx.strokeStyle = C.mute; ctx.beginPath(); ctx.moveTo(X(x0), Y(slope * x0)); ctx.lineTo(X(x1), Y(slope * x1)); ctx.stroke();
@@ -453,7 +455,7 @@
         ["Ky/Sil", 550, hi, (t) => 4.5 + 0.0207 * (t - 550)],
         ["And/Sil", 550, hi, (t) => 4.5 - 0.016 * (t - 550)],
         ["Gr/Dia", Math.max(lo, 25), Math.min(hi, 1727), grDia]];
-      ctx.font = `11px ${FONT}`; ctx.lineWidth = 1.3; ctx.setLineDash([7, 4]); ctx.strokeStyle = ctx.fillStyle = "#0e7490";
+      ctx.font = `${11 * zf}px ${FONT}`; ctx.lineWidth = 1.3; ctx.setLineDash([7, 4]); ctx.strokeStyle = ctx.fillStyle = "#0e7490";
       for (const [lbl, a, b, f] of lines) {
         ctx.beginPath(); for (let i = 0; i <= 60; i++) { const t = a + ((b - a) * i) / 60; i ? ctx.lineTo(X(t), Y(f(t))) : ctx.moveTo(X(t), Y(f(t))); } ctx.stroke();
         const tl = Math.min(b, x1) - (x1 - x0) * 0.03; // label near the right edge of the visible part
@@ -492,7 +494,7 @@
         const a = bp[bp.length - 2], b = bp[bp.length - 1], ang = Math.atan2(Y(b.P_kbar) - Y(a.P_kbar), X(b.T_C) - X(a.T_C)), hx = X(b.T_C) - 9 * Math.cos(ang), hy = Y(b.P_kbar) - 9 * Math.sin(ang);
         ctx.fillStyle = BC; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx - 11 * Math.cos(ang - 0.4), hy - 11 * Math.sin(ang - 0.4)); ctx.lineTo(hx - 11 * Math.cos(ang + 0.4), hy - 11 * Math.sin(ang + 0.4)); ctx.closePath(); ctx.fill();
       }
-      ctx.font = `600 10px ${FONT}`; ctx.textAlign = "center";
+      ctx.font = `600 ${10 * zf}px ${FONT}`; ctx.textAlign = "center";
       bp.forEach((q) => { ctx.fillStyle = BC; ctx.strokeStyle = C.bg; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X(q.T_C), Y(q.P_kbar), 8, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); ctx.fillStyle = "#fff"; ctx.fillText(String(q.n), X(q.T_C), Y(q.P_kbar) + 3.5); });
       ctx.textAlign = "left"; ctx.globalAlpha = 1;
     }
@@ -500,13 +502,13 @@
     if (!sol) return;
 
     // legend box (kept inside the canvas so exported PNGs are self-explanatory)
-    ctx.font = `13px ${FONT}`;
+    ctx.font = `${13 * zf}px ${FONT}`;
     const items = [[C.T, L.EQ[tId].name], [C.P, L.EQ[pId].name], ["#10b981", `${fmt(Tc)} °C, ${fmt(Pc, 2)} kbar`]];
-    const bw = Math.max(...items.map(([, t]) => ctx.measureText(t).width)) + 44, bh = items.length * 21 + 12, bx = W - m.r - bw - 10, by = m.t + 10;
+    const bw = Math.max(...items.map(([, t]) => ctx.measureText(t).width)) + 44, bh = items.length * 21 * zf + 12, bx = W - m.r - bw - 10, by = m.t + 10;
     ctx.fillStyle = dark ? "rgba(28,28,26,0.9)" : "rgba(255,255,255,0.92)"; ctx.strokeStyle = C.grid;
     ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, 8) : ctx.rect(bx, by, bw, bh); ctx.fill(); ctx.stroke();
     items.forEach(([c, t], i) => {
-      const yy = by + 19 + i * 21;
+      const yy = by + 19 * zf + i * 21 * zf;
       ctx.fillStyle = c;
       if (i < 2) ctx.fillRect(bx + 10, yy - 5, 18, 3); else { ctx.beginPath(); ctx.arc(bx + 19, yy - 3.5, 4.5, 0, 2 * Math.PI); ctx.fill(); }
       ctx.fillStyle = C.fg; ctx.fillText(t, bx + 36, yy);
@@ -708,7 +710,7 @@
 
 
   // ------------------------------------------------------------------ shared helpers for import and paste
-  const PT_HINT = "Move the pointer over the diagram to read T, P and depth.";
+  const PT_HINT = "Move the pointer over the diagram, or tap it, to read T, P and depth.";
   const sig = () => JSON.stringify([state.sample, state.opt]); // lets results be recognised as stale after the inputs change
   /** Column or row label → field key (SiO2, FeOt, …) or null. Fe2O3 is returned as "Fe2O3" and converted by the caller. */
   function oxKey(h) {
@@ -762,6 +764,7 @@
     ro.textContent = PT_HINT;
     $("ptGeotherms").addEventListener("change", () => drawPt());
     $("ptPhase").addEventListener("change", () => drawPt());
+    let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => ptAxes && drawPt(), 150); }); // rotation / window resize: re-fit diagram text
     $("ptBatch").addEventListener("change", () => drawPt()); $("ptBatchPath").addEventListener("change", () => drawPt());
     $("batchPlotBtn").addEventListener("click", () => busy($("batchPlotBtn"), plotBatch));
     $("exportSvgBtn").addEventListener("click", () => {
@@ -770,7 +773,7 @@
       drawPt();
       download("LithoPT_PT.svg", rec.svg(), "image/svg+xml");
     });
-    cv.addEventListener("mousemove", (ev) => {
+    const readout = (ev) => {
       const a = ptAxes, r = cv.getBoundingClientRect();
       if (!a) { ro.textContent = PT_HINT; return; }
       const x = ((ev.clientX - r.left) / r.width) * a.W, y = ((ev.clientY - r.top) / r.height) * a.H;
@@ -783,8 +786,9 @@
       cx.hidden = cy.hidden = false;
       const rho = readNum("depthRho") || 2700;
       ro.textContent = `${fmt(t, 0)} °C · ${fmt(p, 2)} kbar · ${p > 0 ? fmt(L.pressureToDepth(p, "constant", rho), 1) : "—"} km (ρ = ${rho} kg/m³)`;
-    });
-    cv.addEventListener("mouseleave", () => { ro.textContent = PT_HINT; $("ptCrossX").hidden = $("ptCrossY").hidden = true; });
+    };
+    cv.addEventListener("pointermove", readout); cv.addEventListener("pointerdown", readout); // pointer events: mouse, pen and a tap on touch screens
+    cv.addEventListener("pointerleave", () => { ro.textContent = PT_HINT; $("ptCrossX").hidden = $("ptCrossY").hidden = true; });
   }
 
   // ------------------------------------------------------------------ interpretation report (text built by lithopt-report.js)
