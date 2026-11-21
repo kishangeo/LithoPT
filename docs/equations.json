@@ -1,5 +1,5 @@
 {
- "version": "4.2.3",
+ "version": "4.3.0",
  "systems": {
   "grt_bt": {
    "name": "Garnet–biotite Fe–Mg exchange",
@@ -1053,7 +1053,7 @@
    "kind": "P",
    "src": "Published",
    "see": "±19.3 %",
-   "range": "Calcic amphibole in calc-alkaline and alkaline magmas, 800–1130 °C, 130–2200 MPa; calibrated for 130–2200 MPa; T-independent. The paper's combined procedure for choosing among eqs 1b–1e is not yet implemented.",
+   "range": "Mg-rich calcic amphibole, Mg/(Mg + Fe²⁺) > 0.5 (13 cations), in calc-alkaline and alkaline magmas, 800–1130 °C, 130–2200 MPa; phenocrysts or euhedral homogeneous crystals only, not hydrothermal veins, microlites or quenched zones (Ridolfi & Renzulli, 2012, abstract and Instructions); calibrated for 130–2200 MPa; T-independent. The paper's combined procedure for choosing among eqs 1b–1e is not yet implemented.",
    "doi": "10.1007/s00410-011-0704-6",
    "ref": null,
    "code": "(s) => { const v = rr(a, s.Amp.c13); return (isLn ? Math.exp(v) : v) / 100; }"
@@ -1065,7 +1065,7 @@
    "kind": "P",
    "src": "Published",
    "see": "±13.1 %",
-   "range": "Calcic amphibole in calc-alkaline and alkaline magmas, 800–1130 °C, 130–2200 MPa; calibrated for 130–500 MPa; T-independent. The paper's combined procedure for choosing among eqs 1b–1e is not yet implemented.",
+   "range": "Mg-rich calcic amphibole, Mg/(Mg + Fe²⁺) > 0.5 (13 cations), in calc-alkaline and alkaline magmas, 800–1130 °C, 130–2200 MPa; phenocrysts or euhedral homogeneous crystals only, not hydrothermal veins, microlites or quenched zones (Ridolfi & Renzulli, 2012, abstract and Instructions); calibrated for 130–500 MPa; T-independent. The paper's combined procedure for choosing among eqs 1b–1e is not yet implemented.",
    "doi": "10.1007/s00410-011-0704-6",
    "ref": null,
    "code": "(s) => { const v = rr(a, s.Amp.c13); return (isLn ? Math.exp(v) : v) / 100; }"
@@ -1077,7 +1077,7 @@
    "kind": "P",
    "src": "Published",
    "see": "±14.9 %",
-   "range": "Calcic amphibole in calc-alkaline and alkaline magmas, 800–1130 °C, 130–2200 MPa; calibrated for 130–500 MPa; T-independent. The paper's combined procedure for choosing among eqs 1b–1e is not yet implemented.",
+   "range": "Mg-rich calcic amphibole, Mg/(Mg + Fe²⁺) > 0.5 (13 cations), in calc-alkaline and alkaline magmas, 800–1130 °C, 130–2200 MPa; phenocrysts or euhedral homogeneous crystals only, not hydrothermal veins, microlites or quenched zones (Ridolfi & Renzulli, 2012, abstract and Instructions); calibrated for 130–500 MPa; T-independent. The paper's combined procedure for choosing among eqs 1b–1e is not yet implemented.",
    "doi": "10.1007/s00410-011-0704-6",
    "ref": null,
    "code": "(s) => { const v = rr(a, s.Amp.c13); return (isLn ? Math.exp(v) : v) / 100; }"
@@ -1089,7 +1089,7 @@
    "kind": "P",
    "src": "Published",
    "see": "±17.3 %",
-   "range": "Calcic amphibole in calc-alkaline and alkaline magmas, 800–1130 °C, 130–2200 MPa; calibrated for 400–1500 MPa; T-independent. The paper's combined procedure for choosing among eqs 1b–1e is not yet implemented.",
+   "range": "Mg-rich calcic amphibole, Mg/(Mg + Fe²⁺) > 0.5 (13 cations), in calc-alkaline and alkaline magmas, 800–1130 °C, 130–2200 MPa; phenocrysts or euhedral homogeneous crystals only, not hydrothermal veins, microlites or quenched zones (Ridolfi & Renzulli, 2012, abstract and Instructions); calibrated for 400–1500 MPa; T-independent. The paper's combined procedure for choosing among eqs 1b–1e is not yet implemented.",
    "doi": "10.1007/s00410-011-0704-6",
    "ref": null,
    "code": "(s) => { const v = rr(a, s.Amp.c13); return (isLn ? Math.exp(v) : v) / 100; }"
@@ -1101,7 +1101,7 @@
    "kind": "P",
    "src": "Published",
    "see": "±11.4 %",
-   "range": "Calcic amphibole in calc-alkaline and alkaline magmas, 800–1130 °C, 130–2200 MPa; calibrated for 930–2200 MPa; T-independent. The paper's combined procedure for choosing among eqs 1b–1e is not yet implemented.",
+   "range": "Mg-rich calcic amphibole, Mg/(Mg + Fe²⁺) > 0.5 (13 cations), in calc-alkaline and alkaline magmas, 800–1130 °C, 130–2200 MPa; phenocrysts or euhedral homogeneous crystals only, not hydrothermal veins, microlites or quenched zones (Ridolfi & Renzulli, 2012, abstract and Instructions); calibrated for 930–2200 MPa; T-independent. The paper's combined procedure for choosing among eqs 1b–1e is not yet implemented.",
    "doi": "10.1007/s00410-011-0704-6",
    "ref": null,
    "code": "(s) => { const v = rr(a, s.Amp.c13); return (isLn ? Math.exp(v) : v) / 100; }"
@@ -1113,7 +1113,7 @@
    "kind": "T",
    "src": "Published",
    "see": "±23.5 °C",
-   "range": "Calcic amphibole in calc-alkaline and alkaline magmas, 800–1130 °C, 130–2200 MPa",
+   "range": "Mg-rich calcic amphibole, Mg/(Mg + Fe²⁺) > 0.5 (13 cations), in calc-alkaline and alkaline magmas, 800–1130 °C, 130–2200 MPa; phenocrysts or euhedral homogeneous crystals only, not hydrothermal veins, microlites or quenched zones (Ridolfi & Renzulli, 2012, abstract and Instructions)",
    "doi": "10.1007/s00410-011-0704-6",
    "ref": null,
    "code": "(s, P) => rr([17098, -1322.3, -1035.1, -1208.2, -1230.4, -1152.9, -130.40, 200.54, 29.408], s.Amp.c13) + 24.410 * ln(P * 100) + K"

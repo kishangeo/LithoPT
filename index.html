@@ -253,12 +253,13 @@
                 </div>
               </div>
               <label class="switch"><input type="checkbox" id="ptGeotherms"><span class="switch-track"></span>Show reference gradients (10, 20, 35 °C/km for the density of the depth model)</label>
+              <label class="switch"><input type="checkbox" id="ptPhase"><span class="switch-track"></span>Show reference phase boundaries (Qtz/Coe, Bose &amp; Ganguly 1995; Gr/Dia, Day 2012; Al₂SiO₅, Pattison 1992)</label>
               <div id="ptBatchBox" hidden>
                 <label class="switch"><input type="checkbox" id="ptBatch"><span class="switch-track"></span>Show batch samples (numbered, 1σ Monte Carlo ellipses)</label>
                 <label class="switch"><input type="checkbox" id="ptBatchPath"><span class="switch-track"></span>Join samples in file order as a P–T path</label>
                 <details><summary class="form-hint">Batch solutions</summary><ol id="ptBatchList" class="form-hint" style="list-style:none;padding-left:0"></ol></details>
               </div>
-              <div class="canvas-wrapper"><canvas id="ptCanvas" width="1400" height="1040" aria-label="P–T diagram"></canvas></div>
+              <div class="canvas-wrapper"><canvas id="ptCanvas" width="1400" height="1040" aria-label="P–T diagram"></canvas><div id="ptCrossX" class="pt-cross pt-cross-x" hidden></div><div id="ptCrossY" class="pt-cross pt-cross-y" hidden></div></div>
               <p class="form-hint pt-readout" id="ptReadout" aria-live="off"></p>
               <div class="legend-container">
                 <span class="legend-item"><span class="legend-line kind-T"></span>Thermometer T(P)</span>
@@ -363,7 +364,7 @@
 
       <footer class="app-footer">
         <p>LithoPT is released under the MIT License. No data leave your browser. Cite the original calibration paper of every equation you use; the Share dialog lists them for your calculation.</p>
-        <p>Created by <a href="https://kishangeo.github.io/" target="_blank" rel="noopener">Kishan Tiwari</a>.</p>
+        <p>Created by <a href="https://kishangeo.github.io/" target="_blank" rel="noopener">Kishan Tiwari</a>. Press <kbd>?</kbd> for keyboard shortcuts.</p>
       </footer>
     </div>
   </div>
@@ -422,6 +423,16 @@
     <div class="modal-body">
       <textarea id="pasteText" class="text-input" rows="10" spellcheck="false" style="width:100%;font-family:var(--font-mono);font-size:0.78rem"></textarea>
       <button id="pasteOk" class="btn btn-primary btn-block" type="button"><span>Use pasted text</span></button>
+    </div>
+  </dialog>
+  <dialog id="nameDialog" class="modal" aria-labelledby="nameTitle">
+    <div class="modal-head">
+      <div><h2 id="nameTitle">Name</h2><p>Saved samples stay in this browser only</p></div>
+      <button class="modal-close" data-close aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input id="nameText" class="text-input" type="text" maxlength="80" autocomplete="off">
+      <button id="nameOk" class="btn btn-primary btn-block" type="button"><span>OK</span></button>
     </div>
   </dialog>
   <dialog id="feedbackDialog" class="modal" aria-labelledby="fbTitle">

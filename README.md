@@ -49,6 +49,15 @@ The calibration-domain check (shrinkage Mahalanobis D² of an analysis from an e
 5. *Share* gives a link that reproduces the calculation exactly, and the list of papers to cite.
 6. *Interpretation report* (below the results in either tab) explains the result in words and downloads it as Markdown or prints it to PDF.
 
+### New in 4.3
+
+- **Fe³⁺ per phase**: all Fe²⁺ (default, as calibrated), Droop (1987) or a fixed Fe³⁺/ΣFe on Fe-bearing mineral cards, as a sensitivity test; recorded in links, JSON and the report.
+- **Saved samples**: save, reload and delete named samples in this browser from the example menu.
+- **Keyboard shortcuts**: Ctrl/⌘+Enter solves P–T, 1–7 switch tabs, ? lists them.
+- **Stated limits**: Ridolfi & Renzulli (2012) results carry a warning when the amphibole has Mg/(Mg + Fe²⁺) ≤ 0.5, the limit stated in the paper.
+- **Reference phase boundaries** on the P–T diagram: quartz/coesite (Bose & Ganguly, 1995), graphite/diamond (Day, 2012) and the Al₂SiO₅ triple point (Pattison, 1992).
+- **P–T diagram crosshair** following the pointer read-out (not included in exports).
+
 ### New in 4.2
 
 - **Batch on the P–T diagram**: every batch sample solved and plotted with its 1σ Monte Carlo ellipse, optionally joined as a P–T path.
@@ -114,7 +123,7 @@ Columns LithoPT doesn't recognise are listed back to you rather than guessed. A 
 
 ## Citing
 
-> Tiwari, K. (2026). LithoPT: browser-based thermobarometry with calibration-domain diagnostics and model-choice uncertainty (Version v4.2.3) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.24341232
+> Tiwari, K. (2026). LithoPT: browser-based thermobarometry with calibration-domain diagnostics and model-choice uncertainty (Version v4.3.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.24341232
 
 Cite LithoPT **and** the original publication of every equation you use. The *Equations & references* tab lists each one with its DOI, and the Share dialog builds the citation list for your calculation.
 

@@ -217,4 +217,27 @@ near(L.evaluate("T_Montierth1995", L.prepare({ Liq: { SiO2: 51, TiO2: 2.2, Al2O3
   passed += 4;
 }
 
+// ---- per-phase Fe3+ treatment (sensitivity option; default unchanged) ----
+{
+  const g = { SiO2: 37.52, TiO2: 0.05, Al2O3: 21.4, FeOt: 29.8, MnO: 1.85, MgO: 4.2, CaO: 4.5, Na2O: 0.03, K2O: 0.01 };
+  const b = { SiO2: 35.8, TiO2: 2.85, Al2O3: 18.5, FeOt: 18.2, MnO: 0.15, MgO: 11.2, CaO: 0.08, Na2O: 0.25, K2O: 9.4 };
+  const T = (feMode) => L.evaluate("T_FerrySpear1978", L.prepare({ Grt: g, Bt: b, feMode }), { P_kbar: 6 });
+  close(T({ Grt: { mode: "allFe2" } }), T(), 1e-12, "allFe2 is the default");
+  const c = L.droopRecalc(g, 12, 8).cat;
+  close(L.fe3Fraction("Grt", g, { mode: "droop" }), c.Fe3 / c.Fe, 1e-12, "Droop fraction from droopRecalc");
+  assert.strictEqual(L.fe3Fraction("Bt", b, { mode: "droop" }), 0, "no Droop estimate without a fixed cation total"); passed++;
+  assert.strictEqual(L.fe3Fraction("Grt", g, { mode: "fixed", ratio: 7 }), 1, "fixed ratio is clamped to [0, 1]"); passed++;
+  assert.ok(T({ Grt: { mode: "fixed", ratio: 0.1 } }) > T(), "less Fe2+ in garnet raises the Grt–Bt temperature"); passed++;
+  const mc = L.monteCarloPT("T_FerrySpear1978", "P_Koziol1988_GASP", { Grt: g, Bt: b, Pl: { SiO2: 60.1, Al2O3: 25.0, CaO: 6.6, Na2O: 7.6, K2O: 0.15 }, feMode: { Grt: { mode: "droop" } } },
+    { N: 20, Pmin: 0, Pmax: 70, eqOpt: { gammaGrs: 1, gammaAn: 1 } });
+  assert.ok(mc.points.length === 20, "Monte Carlo keeps the Fe3+ setting out of the perturbation"); passed++;
+}
+
+{ // Ridolfi & Renzulli (2012) stated limit Mg/(Mg + Fe2+) > 0.5
+  const amp = { SiO2: 40.57, TiO2: 2.45, Al2O3: 12.82, FeOt: 13.11, MnO: 0.26, MgO: 13.02, CaO: 11.63, Na2O: 2.2, K2O: 0.92 };
+  assert.strictEqual(L.limitWarning("T_Ridolfi2012", L.prepare({ Amp: amp })), null, "Mg-rich amphibole passes the RR12 limit"); passed++;
+  assert.ok(/≤ 0.5/.test(L.limitWarning("P_Ridolfi2012_1a", L.prepare({ Amp: Object.assign({}, amp, { FeOt: 25, MgO: 5 }) }))), "Fe-rich amphibole is flagged"); passed++;
+  assert.strictEqual(L.limitWarning("P_Ridolfi2010", L.prepare({ Amp: amp })), null, "equations without a stated limit give no warning"); passed++;
+}
+
 console.log(`core.test.js: ${passed} assertions passed`);

@@ -106,7 +106,7 @@
   }
   const refNode = (e) => e.doi ? el("a", { href: "https://doi.org/" + e.doi, target: "_blank", rel: "noopener noreferrer", text: e.name }) : el("span", { text: `${e.name}, ${e.ref || ""}` });
 
-  function prepared() { return L.prepare(Object.assign({}, state.sample, { cpxFe2: state.opt.cpxFe2 })); }
+  function prepared() { return L.prepare(Object.assign({}, state.sample, { cpxFe2: state.opt.cpxFe2, feMode: state.opt.feMode })); }
   function eqAvailable(e) { return L.SYSTEMS[e.system].phases.every((ph) => state.sample[ph] && Object.values(state.sample[ph]).some((v) => v > 0)); }
 
   // ------------------------------------------------------------------ calculator
@@ -182,7 +182,21 @@
         };
         (navigator.clipboard && navigator.clipboard.readText ? navigator.clipboard.readText() : Promise.reject()).then((t) => (t.trim() ? use(t) : pasteDialog("Paste the analysis here", use)), () => pasteDialog("Paste the analysis here", use));
       });
-      const head = el("div", { class: "diag-header" }, [el("span", { class: "phase-tag" }, [el("span", { class: "phase-abbr", text: ph }), el("strong", { text: PHASE_LABEL[ph] })]), el("span", { class: "head-badges" }, [catB, sum, ph === "Trace" ? null : paste])]);
+      let feSel = null;
+      if (ph in L.FE3_PHASES) { // default = all Fe as Fe2+, the convention of the calibrations
+        const cur = (state.opt.feMode || {})[ph], ratio = el("input", { type: "number", class: "text-input fe3-ratio", min: "0", max: "1", step: "0.05", "aria-label": `${PHASE_LABEL[ph]} Fe3+/ΣFe`, value: cur && cur.mode === "fixed" ? String(cur.ratio) : "0.1" });
+        const sel = el("select", { class: "select-input fe3-select", title: "Fe³⁺ treatment for this phase (sensitivity test; the equations were calibrated with the convention marked default)", "aria-label": `${PHASE_LABEL[ph]} Fe3+ treatment` },
+          [el("option", { value: "allFe2", text: "Fe³⁺: none (default)" }), L.FE3_PHASES[ph] ? el("option", { value: "droop", text: "Fe³⁺: Droop (1987)" }) : null, el("option", { value: "fixed", text: "Fe³⁺/ΣFe fixed" })]);
+        sel.value = cur ? cur.mode : "allFe2"; ratio.hidden = sel.value !== "fixed";
+        const apply = () => {
+          const fm = Object.assign({}, state.opt.feMode);
+          if (sel.value === "allFe2") delete fm[ph]; else fm[ph] = sel.value === "fixed" ? { mode: "fixed", ratio: Math.min(1, Math.max(0, parseFloat(ratio.value) || 0)) } : { mode: "droop" };
+          state.opt.feMode = Object.keys(fm).length ? fm : undefined; ratio.hidden = sel.value !== "fixed"; compute();
+        };
+        sel.addEventListener("change", apply); ratio.addEventListener("input", apply);
+        feSel = el("span", { class: "fe3-pill" }, [sel, ratio]);
+      }
+      const head = el("div", { class: "diag-header" }, [el("span", { class: "phase-tag" }, [el("span", { class: "phase-abbr", text: ph }), el("strong", { text: PHASE_LABEL[ph] })]), el("span", { class: "head-badges" }, [feSel, catB, sum, ph === "Trace" ? null : paste])]);
       const meter = ph === "Trace" ? null : el("div", { class: "sum-meter", id: `meter_${ph}` }, [el("span")]);
       box.appendChild(el("div", { class: "card-highlight" }, [head, meter, grid]));
     }
@@ -230,7 +244,7 @@
       prevShown[e.id] = txt;
       lastRows.push({ e, txt, note, a });
       const cells = [el("td", {}, [el("div", { class: "eq-name" }, [el("span", { class: `kind-dot kind-${e.kind}`, title: KIND_NAME[e.kind] }), refNode(e)]), el("div", { class: "eq-meta" }, [el("span", { class: "badge " + SRC_BADGE[e.src][0], text: SRC_BADGE[e.src][1] }), el("span", { class: "form-hint", text: e.range })])]),
-        el("td", { "data-label": "Result" }, [val, note ? el("div", { class: "form-hint", text: note }) : null]),
+        el("td", { "data-label": "Result" }, [val, note ? el("div", { class: "form-hint", text: note }) : null, s && !note && L.limitWarning(e.id, s) ? el("div", { class: "form-hint", text: "⚠ " + L.limitWarning(e.id, s) }) : null]),
         el("td", { "data-label": "1σ (SEE)", text: e.see }), el("td", { "data-label": "Calibration domain" }, [domainNode(a)])];
       tbody.appendChild(el("tr", {}, cells));
     }
@@ -302,7 +316,7 @@
     let det;
     const prep = prepared();
     try { det = L.solvePT(tId, pId, prep, opt); } catch (e) { det = { converged: false, reason: e.message }; }
-    const sampleWithOpt = Object.assign({}, state.sample, { cpxFe2: state.opt.cpxFe2 });
+    const sampleWithOpt = Object.assign({}, state.sample, { cpxFe2: state.opt.cpxFe2, feMode: state.opt.feMode });
     const mc = det.converged ? L.monteCarloPT(tId, pId, sampleWithOpt, Object.assign({}, opt, {
       N: Math.max(100, readNum("mcN") || 1000), rel: (readNum("mcRel") ?? 2) / 100, floor: readNum("mcFloor") ?? 0.02, seed: readNum("mcSeed") ?? 42,
       calibration: $("mcCal").checked })) : null;
@@ -333,7 +347,7 @@
       const g = L.intersectionGeometry(tId, pId, prepared(), det, opt);
       row("Intersection", `${g.condition}: curves cross at ${fmt(g.angle, 0)}° (T and P scaled by the two SEEs)${g.condition === "well-conditioned" ? "" : " — small errors move the solution a long way"}`);
     } catch (e) { /* slopes undefined at the edge of an equation's range */ }
-    for (const e of [eT, eP]) { const a = L.applicability(e.id, state.sample); if (a) row(`Calibration domain, ${e.name}`, `${a.status} (D² = ${a.d2.toFixed(1)}; 99th pct. ${a.p99.toFixed(1)})`); }
+    for (const e of [eT, eP]) { const a = L.applicability(e.id, state.sample); if (a) row(`Calibration domain, ${e.name}`, `${a.status} (D² = ${a.d2.toFixed(1)}; 99th pct. ${a.p99.toFixed(1)})`); const w = L.limitWarning(e.id, lastPt.prep); if (w) row(`Stated limit, ${e.name}`, "⚠ " + w); }
     animatePt();
   }
 
@@ -342,7 +356,7 @@
     const box = $("ensSummary");
     box.textContent = "";
     const systems = [...$("ensSystems").selectedOptions].map((o) => o.value);
-    const res = L.ensemblePT(Object.assign({}, state.sample, { cpxFe2: state.opt.cpxFe2 }), { systems: systems.length ? systems : undefined, restricted: $("ensRestricted").checked, Pmin: readNum("ptPmin") ?? 0, Pmax: readNum("ptPmax") ?? 70, eqOpt: state.opt });
+    const res = L.ensemblePT(Object.assign({}, state.sample, { cpxFe2: state.opt.cpxFe2, feMode: state.opt.feMode }), { systems: systems.length ? systems : undefined, restricted: $("ensRestricted").checked, Pmin: readNum("ptPmin") ?? 0, Pmax: readNum("ptPmax") ?? 70, eqOpt: state.opt });
     lastEns = res; res.sig = sig();
     const row = (k, v) => box.appendChild(el("div", { class: "conv-item" }, [el("span", { class: "conv-lbl", text: k }), el("span", { class: "conv-val", text: v })]));
     row("Pairs solved", `${res.nSolved} of ${res.pairs.length}`);
@@ -431,6 +445,22 @@
       }
       ctx.setLineDash([]);
     }
+    if ($("ptPhase").checked) { // reference phase boundaries: Bose & Ganguly (1995) eq. 1; Pattison (1992) triple point and slopes
+      const lo = Math.min(x0, 550), hi = Math.max(x1, 550);
+      const lines = [
+        ["Qtz/Coe", lo, hi, (t) => 21.945 + 0.006901 * (t + 273.15)],
+        ["Ky/And", lo, 550, (t) => 4.5 + 0.0115 * (t - 550)],
+        ["Ky/Sil", 550, hi, (t) => 4.5 + 0.0207 * (t - 550)],
+        ["And/Sil", 550, hi, (t) => 4.5 - 0.016 * (t - 550)],
+        ["Gr/Dia", Math.max(lo, 25), Math.min(hi, 1727), grDia]];
+      ctx.font = `11px ${FONT}`; ctx.lineWidth = 1.3; ctx.setLineDash([7, 4]); ctx.strokeStyle = ctx.fillStyle = "#0e7490";
+      for (const [lbl, a, b, f] of lines) {
+        ctx.beginPath(); for (let i = 0; i <= 60; i++) { const t = a + ((b - a) * i) / 60; i ? ctx.lineTo(X(t), Y(f(t))) : ctx.moveTo(X(t), Y(f(t))); } ctx.stroke();
+        const tl = Math.min(b, x1) - (x1 - x0) * 0.03; // label near the right edge of the visible part
+        if (tl > Math.max(a, x0) && f(tl) > y0 && f(tl) < y1) { ctx.textAlign = "right"; ctx.fillText(lbl, X(tl), Y(f(tl)) - 5); ctx.textAlign = "left"; }
+      }
+      ctx.setLineDash([]);
+    }
     const n = 80, cond = { opt: state.opt }, nk = Math.max(1, Math.round(n * k));
     if (sol) {
     curve([...Array(nk + 1)].map((_, i) => { const p = y0 + ((y1 - y0) * i) / n; return [L.evaluate(tId, s, Object.assign({ P_kbar: p }, cond)) - 273.15, p]; }), C.T);
@@ -483,6 +513,14 @@
     });
   }
 
+  // Day (2012) Table 3, "Preferred" diamond–graphite transition: [T (K), P (kbar)], linearly interpolated
+  const GR_DIA = [[298, 16.2], [400, 18.3], [500, 20.7], [600, 23.2], [700, 25.8], [800, 28.4], [900, 31.1], [1000, 33.9], [1100, 36.7], [1200, 39.5],
+    [1300, 42.4], [1400, 45.2], [1500, 48.2], [1600, 51.2], [1700, 54.2], [1800, 57.2], [1900, 60.3], [2000, 63.5]];
+  function grDia(tC) {
+    const T = tC + 273.15, j = GR_DIA.findIndex(([t]) => t >= T), i = j < 0 ? GR_DIA.length - 1 : Math.max(1, j); // extrapolates the end segments
+    const [t0, p0] = GR_DIA[i - 1], [t1, p1] = GR_DIA[i];
+    return p0 + ((p1 - p0) * (T - t0)) / (t1 - t0);
+  }
   function drawEllipse(ctx, X, Y, mc, k, color) {
     const a = mc.T_C.sd ** 2, c = mc.P_kbar.sd ** 2, b = mc.cov;
     const tr = (a + c) / 2, det = Math.sqrt(((a - c) / 2) ** 2 + b * b);
@@ -723,6 +761,7 @@
     const cv = $("ptCanvas"), ro = $("ptReadout");
     ro.textContent = PT_HINT;
     $("ptGeotherms").addEventListener("change", () => drawPt());
+    $("ptPhase").addEventListener("change", () => drawPt());
     $("ptBatch").addEventListener("change", () => drawPt()); $("ptBatchPath").addEventListener("change", () => drawPt());
     $("batchPlotBtn").addEventListener("click", () => busy($("batchPlotBtn"), plotBatch));
     $("exportSvgBtn").addEventListener("click", () => {
@@ -736,18 +775,23 @@
       if (!a) { ro.textContent = PT_HINT; return; }
       const x = ((ev.clientX - r.left) / r.width) * a.W, y = ((ev.clientY - r.top) / r.height) * a.H;
       const t = a.x0 + ((x - a.m.l) / (a.W - a.m.l - a.m.r)) * (a.x1 - a.x0), p = a.y0 + ((a.H - a.m.b - y) / (a.H - a.m.t - a.m.b)) * (a.y1 - a.y0);
-      if (t < a.x0 || t > a.x1 || p < a.y0 || p > a.y1) { ro.textContent = PT_HINT; return; }
+      const cx = $("ptCrossX"), cy = $("ptCrossY");
+      if (t < a.x0 || t > a.x1 || p < a.y0 || p > a.y1) { ro.textContent = PT_HINT; cx.hidden = cy.hidden = true; return; }
+      const k = r.width / a.W; // canvas units → CSS pixels
+      Object.assign(cx.style, { left: `${a.m.l * k}px`, width: `${(a.W - a.m.l - a.m.r) * k}px`, top: `${y * k}px` });
+      Object.assign(cy.style, { top: `${a.m.t * k}px`, height: `${(a.H - a.m.t - a.m.b) * k}px`, left: `${x * k}px` });
+      cx.hidden = cy.hidden = false;
       const rho = readNum("depthRho") || 2700;
       ro.textContent = `${fmt(t, 0)} °C · ${fmt(p, 2)} kbar · ${p > 0 ? fmt(L.pressureToDepth(p, "constant", rho), 1) : "—"} km (ρ = ${rho} kg/m³)`;
     });
-    cv.addEventListener("mouseleave", () => { ro.textContent = PT_HINT; });
+    cv.addEventListener("mouseleave", () => { ro.textContent = PT_HINT; $("ptCrossX").hidden = $("ptCrossY").hidden = true; });
   }
 
   // ------------------------------------------------------------------ interpretation report (text built by lithopt-report.js)
   let lastReport = null;
   function buildReport() {
     const fresh = (x) => x && x.sig === sig(), solved = fresh(lastPt) && lastPt.det.converged;
-    const sample = Object.assign({}, state.sample, { cpxFe2: state.opt.cpxFe2 });
+    const sample = Object.assign({}, state.sample, { cpxFe2: state.opt.cpxFe2, feMode: state.opt.feMode });
     let ens = fresh(lastEns) ? lastEns : null;
     if (!ens && solved) { try { ens = L.ensemblePT(sample, { Pmin: lastPt.opt.Pmin, Pmax: lastPt.opt.Pmax, eqOpt: state.opt }); } catch (e) { ens = null; } }
     let figure = null;
@@ -813,7 +857,7 @@
     $("advRunBtn").addEventListener("click", () => busy($("advRunBtn"), () => {
       const out = $("advOut"); out.textContent = "";
       let r;
-      try { r = L.recommendModels(Object.assign({}, state.sample, { cpxFe2: state.opt.cpxFe2 }), { P_kbar: state.P ?? 0, T_K: (state.T ?? 0) + 273.15, eqOpt: state.opt, Pmin: readNum("ptPmin") ?? 0, Pmax: readNum("ptPmax") ?? 70 }); }
+      try { r = L.recommendModels(Object.assign({}, state.sample, { cpxFe2: state.opt.cpxFe2, feMode: state.opt.feMode }), { P_kbar: state.P ?? 0, T_K: (state.T ?? 0) + 273.15, eqOpt: state.opt, Pmin: readNum("ptPmin") ?? 0, Pmax: readNum("ptPmax") ?? 70 }); }
       catch (e) { out.appendChild(el("p", { class: "alert-box alert-warning", text: e.message })); return; }
       const badge = (sc) => el("span", { class: "badge " + (sc >= 80 ? "badge-success" : sc >= 60 ? "badge-warning" : "badge-danger"), text: `${sc} / 100 · ${sc >= 80 ? "strong" : sc >= 60 ? "fair" : "weak"}` });
       const card = (title, value, sc, why, actions) => el("div", { class: "adv-card" }, [el("div", { class: "adv-head" }, [el("strong", { text: title }), badge(sc)]), el("div", { class: "adv-value", text: value }),
@@ -961,6 +1005,12 @@
     const d = $("pasteDialog"), t = $("pasteText"); $("pasteTitle").textContent = title; t.value = "";
     $("pasteOk").onclick = () => { d.close(); if (t.value.trim()) cb(t.value); };
     openDialog(d); t.focus();
+  }
+  function nameDialog(title, value, cb) {
+    const d = $("nameDialog"), t = $("nameText"); $("nameTitle").textContent = title; t.value = value;
+    $("nameOk").onclick = () => { const v = t.value.trim().slice(0, 80); if (!v) return; d.close(); cb(v); };
+    t.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("nameOk").click(); } };
+    openDialog(d); t.focus(); t.select();
   }
   function openDialog(d) { d.classList.remove("closing"); if (!d.open) d.showModal(); }
   function closeDialog(d) {
@@ -1254,6 +1304,11 @@
     const o = obj.opt && typeof obj.opt === "object" ? obj.opt : {}, opt = { gammaGrs: 1, gammaAn: 1, cpxFe2: "total" };
     for (const k of ["gammaGrs", "gammaAn", "niOl"]) if (Number.isFinite(o[k]) && o[k] > 0) opt[k] = o[k];
     if (o.cpxFe2 === "lindsley") opt.cpxFe2 = "lindsley";
+    if (o.feMode && typeof o.feMode === "object") for (const [ph, m] of Object.entries(o.feMode)) {
+      if (!(ph in L.FE3_PHASES) || !m) continue;
+      if (m.mode === "droop" && L.FE3_PHASES[ph]) (opt.feMode = opt.feMode || {})[ph] = { mode: "droop" };
+      else if (m.mode === "fixed" && Number.isFinite(m.ratio) && m.ratio >= 0 && m.ratio <= 1) (opt.feMode = opt.feMode || {})[ph] = { mode: "fixed", ratio: m.ratio };
+    }
     Object.assign(state, { system: obj.system, P: Number.isFinite(+obj.P) ? +obj.P : 0, T: Number.isFinite(+obj.T) ? +obj.T : 0, sample: clean, opt });
     $("systemSelect").value = state.system; $("condP").value = state.P; $("condT").value = state.T;
     renderPhaseInputs();
@@ -1288,7 +1343,40 @@
     });
     const ps = $("presetSelect");
     for (const [k, p] of Object.entries(PRESETS)) ps.appendChild(el("option", { value: k, text: p.label }));
-    ps.addEventListener("change", () => ps.value && loadPreset(ps.value));
+    const SAVED = "lithopt-saved";
+    const savedGroup = el("optgroup", { label: "Saved in this browser" });
+    const renderSaved = () => {
+      savedGroup.textContent = "";
+      for (const name of Object.keys(store.get(SAVED, {})).sort()) savedGroup.appendChild(el("option", { value: "saved:" + name, text: name }));
+      savedGroup.appendChild(el("option", { value: "__save", text: "＋ Save current sample…" }));
+      if (savedGroup.children.length > 1) savedGroup.appendChild(el("option", { value: "__delete", text: "✕ Delete a saved sample…" }));
+    };
+    ps.appendChild(savedGroup); renderSaved();
+    let lastSaved = "";
+    ps.addEventListener("change", () => {
+      const v = ps.value; if (!v) return;
+      if (v === "__save" || v === "__delete") {
+        ps.value = "";
+        nameDialog(v === "__save" ? "Save the current sample as" : "Delete the saved sample named", v === "__save" ? lastSaved : lastSaved || Object.keys(store.get(SAVED, {}))[0] || "", (name) => {
+          const all = store.get(SAVED, {});
+          if (v === "__save") { all[name] = snapshot(); toast(`Saved “${name}” in this browser`); }
+          else if (name in all) { delete all[name]; toast(`Deleted “${name}”`); } else { toast(`No saved sample named “${name}”`); return; }
+          store.set(SAVED, all); renderSaved();
+        });
+        return;
+      }
+      if (v.startsWith("saved:")) { const name = v.slice(6), st = store.get(SAVED, {})[name]; try { restore(st); lastSaved = name; toast(`Loaded “${name}”`); } catch (e) { toast("That saved sample could not be read"); } return; }
+      loadPreset(v);
+    });
+    // keyboard: Ctrl/⌘+Enter solves P–T; 1–7 switch tabs; ? lists the shortcuts
+    document.addEventListener("keydown", (ev) => {
+      if ((ev.ctrlKey || ev.metaKey) && ev.key === "Enter") { ev.preventDefault(); goTab("tab-pt"); $("runPtBtn").click(); return; }
+      const t = ev.target, typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+      if (typing || ev.ctrlKey || ev.metaKey || ev.altKey || document.querySelector("dialog[open]")) return;
+      const tabs = document.querySelectorAll(".tab-btn");
+      if (/^[1-9]$/.test(ev.key) && tabs[+ev.key - 1]) { tabs[+ev.key - 1].click(); return; }
+      if (ev.key === "?") toast("Shortcuts: Ctrl/⌘+Enter solve P–T · 1–7 switch tabs · Esc close a dialog");
+    });
     buildSystemSelect();
     // each part of the page starts independently, so one failure cannot leave the rest unwired
     for (const init of [initFormula, initBatch, initCatalog, initDiagramTools, initReports, initAdvisor]) { try { init(); } catch (e) { console.error(e); } }

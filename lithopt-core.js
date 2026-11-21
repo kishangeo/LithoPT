@@ -1,5 +1,5 @@
 /**
- * LithoPT core engine v4.2.3
+ * LithoPT core engine v4.3.0
  * Author: Kishan Tiwari <kishantiwari@iitkgp.ac.in>
  *
  * Pure, DOM-free calculation library: stoichiometry, mineral components, thermobarometric
@@ -19,7 +19,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const VERSION = "4.2.3";
+  const VERSION = "4.3.0";
   const R = 8.314462618; // J mol⁻¹ K⁻¹ (CODATA 2018)
   const ln = Math.log, log10 = Math.log10;
 
@@ -483,7 +483,9 @@
 
   // ---- Ridolfi & Renzulli (2012), Contrib. Mineral. Petrol. 163, 877–895, Table 3 -----------------------------------------
   // Amphibole cations on 13 cations; P in MPa (converted to kbar here). Coefficients: constant, Si, Ti, Al, Fe, Mg, Ca, Na, K.
-  const RR12 = "10.1007/s00410-011-0704-6", RR_RANGE = "Calcic amphibole in calc-alkaline and alkaline magmas, 800–1130 °C, 130–2200 MPa";
+  const RR12 = "10.1007/s00410-011-0704-6", RR_RANGE = "Mg-rich calcic amphibole, Mg/(Mg + Fe²⁺) > 0.5 (13 cations), in calc-alkaline and alkaline magmas, 800–1130 °C, 130–2200 MPa; phenocrysts or euhedral homogeneous crystals only, not hydrothermal veins, microlites or quenched zones (Ridolfi & Renzulli, 2012, abstract and Instructions)";
+  // stated limit (abstract): Mg-rich calcic amphibole, Mg/(Mg + Fe2+) > 0.5; Fe is Fe2+ after any per-phase Fe3+ choice
+  const rrLimit = (s) => s.Amp && s.Amp.MgNo <= 0.5 ? `Mg/(Mg + Fe²⁺) = ${s.Amp.MgNo.toFixed(2)} ≤ 0.5: outside the Mg-rich amphibole the equations were calibrated for (Ridolfi & Renzulli, 2012)` : null;
   const rr = (a, c) => a[0] + a[1] * c.Si + a[2] * c.Ti + a[3] * c.Al + a[4] * c.Fe + a[5] * c.Mg + a[6] * c.Ca + a[7] * c.Na + a[8] * c.K;
   const RR_P = {
     "1a": [true, "±19.3 %", "130–2200 MPa", [125.93, -9.5876, -10.116, -8.1735, -9.2261, -8.7934, -1.6659, 2.4835, 2.5192]],
@@ -494,10 +496,10 @@
   };
   for (const [k, [isLn, see, prange, a]] of Object.entries(RR_P)) EQUATIONS.push({
     id: `P_Ridolfi2012_${k}`, system: "amp_only", kind: "P", src: PUB, name: `Ridolfi & Renzulli (2012) eq. ${k}`, doi: RR12, see,
-    range: `${RR_RANGE}; calibrated for ${prange}; T-independent. The paper's combined procedure for choosing among eqs 1b–1e is not yet implemented.`,
+    limit: rrLimit, range: `${RR_RANGE}; calibrated for ${prange}; T-independent. The paper's combined procedure for choosing among eqs 1b–1e is not yet implemented.`,
     fn: (s) => { const v = rr(a, s.Amp.c13); return (isLn ? Math.exp(v) : v) / 100; }
   });
-  EQUATIONS.push({ id: "T_Ridolfi2012", system: "amp_only", kind: "T", src: PUB, name: "Ridolfi & Renzulli (2012) eq. 2", doi: RR12, see: "±23.5 °C", range: RR_RANGE,
+  EQUATIONS.push({ id: "T_Ridolfi2012", system: "amp_only", kind: "T", src: PUB, name: "Ridolfi & Renzulli (2012) eq. 2", doi: RR12, see: "±23.5 °C", range: RR_RANGE, limit: rrLimit,
     // T(°C) = Table 3 sum + 24.410·ln P(MPa)
     fn: (s, P) => rr([17098, -1322.3, -1035.1, -1208.2, -1230.4, -1152.9, -130.40, 200.54, 29.408], s.Amp.c13) + 24.410 * ln(P * 100) + K });
 
@@ -621,9 +623,28 @@
   /** sample: { Grt:{SiO2…}, Cpx:{…}, Liq:{…, Zr_ppm}, Trace:{Ti_zrc…}, cpxFe2: "total"|"lindsley" } */
   function prepare(sample) {
     validateSample(sample);
-    const s = { cpxFe2: sample.cpxFe2 || "total", raw: sample };
-    for (const ph in PHASE_MODEL) if (sample[ph]) s[ph] = PHASE_MODEL[ph](sample[ph]);
+    const s = { cpxFe2: sample.cpxFe2 || "total", raw: sample, fe3: {} };
+    for (const ph in PHASE_MODEL) if (sample[ph]) {
+      const f = fe3Fraction(ph, sample[ph], sample.feMode && sample.feMode[ph]);
+      if (f > 0) s.fe3[ph] = f;
+      s[ph] = PHASE_MODEL[ph](f > 0 ? Object.assign({}, sample[ph], { FeOt: num(sample[ph].FeOt) * (1 - f) }) : sample[ph]);
+    }
     return s;
+  }
+  /** Phases whose Fe3+ can be set by the user, with their Droop (1987) basis (null: no fixed cation total, so no Droop estimate). */
+  const FE3_PHASES = { Grt: [12, 8], Cpx: [6, 4], Opx: [6, 4], Ol: [4, 3], Bt: null, Amp: null };
+  /**
+   * Fe3+/ΣFe used for a phase: mode "allFe2" (default; the convention of the calibrations), "droop" (Droop, 1987) or
+   * "fixed" with ratio in [0, 1]. The Fe3+ share is removed from FeO before the components are computed, so every
+   * equation sees Fe2+ only.
+   * ponytail: Fe3+ is dropped rather than recast as Fe2O3, which slightly changes the cation normalisation; this is a
+   * sensitivity test, and equations calibrated on total Fe are then applied outside their convention.
+   */
+  function fe3Fraction(ph, comp, m) {
+    if (!m || !(ph in FE3_PHASES) || !(num(comp.FeOt) > 0)) return 0;
+    if (m.mode === "fixed") return Math.min(1, Math.max(0, Number(m.ratio) || 0));
+    if (m.mode === "droop" && FE3_PHASES[ph]) { const c = droopRecalc(comp, ...FE3_PHASES[ph]).cat; return c.Fe > 0 ? c.Fe3 / c.Fe : 0; }
+    return 0;
   }
   /**
    * Fe–Mg exchange tests of equilibrium, K_D = (Fe/Mg)mineral / (Fe2+/Mg)liquid, with the ranges given by Putirka (2008):
@@ -690,7 +711,7 @@
     const out = {};
     for (const k in sample) {
       const v = sample[k];
-      if (!v || typeof v !== "object") { out[k] = v; continue; }
+      if (!v || typeof v !== "object" || k === "feMode") { out[k] = v; continue; } // settings, not analyses
       out[k] = {};
       for (const o in v) {
         const x = num(v[o]), fixed = o === "aTiO2" || o === "aSiO2" || o === "Fe3Fet"; // activities and the redox ratio are inputs, not analyses
@@ -760,6 +781,8 @@
   const DOMAIN_OF = {};
   if (DOMAINS) for (const [k, d] of Object.entries(DOMAINS)) for (const id of d.equations) DOMAIN_OF[id] = k;
   /** Squared Mahalanobis distance of a sample from an equation's calibration data, vs. the 95th/99th percentiles of that data. */
+  /** Warning text when a prepared sample breaks a compositional limit stated by the equation's source, else null. */
+  function limitWarning(eqId, s) { const e = EQ[eqId]; try { return e && e.limit ? e.limit(s) : null; } catch (err) { return null; } }
   function applicability(eqId, sample) {
     const key = DOMAIN_OF[eqId];
     if (!key) return null;
@@ -876,6 +899,7 @@
       const a = applicability(e.id, sample);
       const dom = !a ? 15 : a.status === "inside" ? 30 : a.status === "marginal" ? 15 : 0;
       why.push(!a ? "· calibration domain not assessed (no calibration data distributed for this equation)" : `${a.status === "inside" ? "✓" : "⚠"} ${a.status} the calibration data (D² = ${a.d2.toFixed(1)}, 95th percentile ${a.p95.toFixed(1)})`);
+      const lw = limitWarning(e.id, s); if (lw) why.push("⚠ " + lw);
       const badTot = phs.filter((p) => !totalOk(p, sample[p]));
       why.push(badTot.length ? `⚠ analytical total outside the usual range: ${badTot.join(", ")}` : "✓ analytical totals in the usual range");
       const rel = tests.filter((t) => { const [x, y] = t.name.split(" ")[0].toLowerCase().split("–"); const has = (n) => phs.some((p) => p.toLowerCase() === n); return has(x) && has(y); });
@@ -906,9 +930,9 @@
 
   return {
     VERSION, OX, ATOMIC_WEIGHT, MINERAL_OXIDES, LIQUID_OXIDES, SYSTEMS, EQUATIONS, EQ, MINERAL_BASIS,
-    cationsPerOxygen, cationFractions, droopRecalc, structuralFormula,
+    cationsPerOxygen, cationFractions, droopRecalc, structuralFormula, fe3Fraction, FE3_PHASES,
     phases: { garnet, biotite, clinopyroxene, orthopyroxene, feldspar, olivine, spinel, liquid },
-    DEPTH_MODELS, pressureToDepth, applicability, ensemblePT, seeOf, plausible, PLAUSIBLE, DOMAINS: () => DOMAINS,
+    DEPTH_MODELS, pressureToDepth, applicability, limitWarning, ensemblePT, seeOf, plausible, PLAUSIBLE, DOMAINS: () => DOMAINS,
     prepare, evaluate, equilibriumTests, solvePT, monteCarloPT, perturbSample, mulberry32, stats,
     intersectionGeometry, classifyMineral, recommendModels, phasesPresent, totalOk
   };

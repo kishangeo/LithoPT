@@ -369,6 +369,12 @@ select[multiple] option { padding: 0.35rem 0.5rem; border-radius: 5px; }
 .kpi strong { display: block; font: 700 1.65rem var(--font-mono); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; margin: 0.1rem 0; }
 .kpi small { font-size: 0.74rem; opacity: 0.85; font-family: var(--font-mono); }
 
+.pt-cross { position: absolute; pointer-events: none; border: 0 dashed var(--muted); opacity: 0.8; }
+.pt-cross-x { height: 0; border-top-width: 1px; }
+.pt-cross-y { width: 0; border-left-width: 1px; }
+.fe3-pill { display: inline-flex; gap: 0.25rem; align-items: center; }
+.fe3-select { width: auto; padding: 0.15rem 1.6rem 0.15rem 0.5rem; font-size: 0.72rem; min-height: 0; }
+.fe3-ratio { width: 4.2rem; padding: 0.15rem 0.4rem; font-size: 0.72rem; min-height: 0; }
 .canvas-wrapper { position: relative; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface); }
 #ptCanvas { display: block; width: 100%; height: auto; aspect-ratio: 700 / 520; }
 .legend-container { display: flex; flex-wrap: wrap; gap: 0.5rem 1.1rem; font-size: 0.76rem; color: var(--text-2); margin-top: 0.85rem; }

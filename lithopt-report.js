@@ -1,5 +1,5 @@
 /**
- * LithoPT interpretation report v4.2.3
+ * LithoPT interpretation report v4.3.0
  * Author: Kishan Tiwari <kishantiwari@iitkgp.ac.in>
  *
  * DOM-free: builds a Markdown report from a calculation (and converts that Markdown to HTML for the
@@ -40,7 +40,7 @@
    * Returns { title, markdown }.
    */
   function build(ctx) {
-    const L = ctx.L, sample = ctx.sample, s = L.prepare(Object.assign({}, sample, { cpxFe2: (ctx.eqOpt && ctx.eqOpt.cpxFe2) || "total" }));
+    const L = ctx.L, sample = ctx.sample, s = L.prepare(Object.assign({}, sample, { cpxFe2: (ctx.eqOpt && ctx.eqOpt.cpxFe2) || "total", feMode: ctx.eqOpt && ctx.eqOpt.feMode }));
     const pt = ctx.pt && ctx.pt.det && ctx.pt.det.converged ? ctx.pt : null;
     const rho = ctx.rho || 2700, sys = L.SYSTEMS[ctx.system], out = [];
     const P = pt ? pt.det.P_kbar : ctx.cond.P_kbar, Tc = pt ? pt.det.T_K - 273.15 : ctx.cond.T_C;
@@ -78,6 +78,8 @@
     const oxides = L.LIQUID_OXIDES.concat(["H2O"]), minerals = phases.filter((p) => p !== "Trace");
     if (minerals.length) {
       const tot = (p) => oxides.reduce((a, o) => a + (+sample[p][o] || 0), 0);
+      const fm = (ctx.eqOpt && ctx.eqOpt.feMode) || {}, fmTxt = Object.keys(fm).filter((p) => sample[p]).map((p) => `${PHASE_NAME[p]}: ${fm[p].mode === "droop" ? "Fe³⁺ by Droop (1987)" : `Fe³⁺/ΣFe = ${f(+fm[p].ratio, 2)} (fixed)`}`);
+      if (fmTxt.length) out.push(`**Fe³⁺ treatment (non-default):** ${fmTxt.join("; ")}. The Fe³⁺ share is removed from FeO before the components are computed; equations calibrated on total Fe are then applied outside their own convention, so read this as a sensitivity test.`);
       out.push("Oxides in wt%; total iron as FeOt.", table(["Oxide"].concat(minerals), oxides.filter((o) => minerals.some((p) => +sample[p][o] > 0)).map((o) => [o].concat(minerals.map((p) => (sample[p][o] > 0 ? f(+sample[p][o], 2) : "—"))))
         .concat([["**Total**"].concat(minerals.map((p) => `**${f(tot(p), 2)}**`))])));
       const withBasis = minerals.filter((p) => BASIS_NAME[p]), sf = {}, flags = [];
@@ -119,7 +121,7 @@
     if (pt) out.push("The coupled solution uses the two equations described first; all other equations that can be evaluated for the phases entered are listed in the table that follows.");
     for (const e of used) {
       const [kind, why] = mechanism(e), a = L.applicability(e.id, sample);
-      out.push(`### ${e.name}`, `- Identifier: ${e.id} · system: ${L.SYSTEMS[e.system].name}\n- Source: ${e.doi ? "https://doi.org/" + e.doi : e.ref || "see the Equations tab"}\n- Published standard error: ${e.see}\n- Calibration range: ${e.range}\n- Type: ${kind}. ${why}\n- Calibration domain: ${a
+      out.push(`### ${e.name}`, `- Identifier: ${e.id} · system: ${L.SYSTEMS[e.system].name}\n- Source: ${e.doi ? "https://doi.org/" + e.doi : e.ref || "see the Equations tab"}\n- Published standard error: ${e.see}\n- Calibration range: ${e.range}\n${L.limitWarning(e.id, s) ? `- **Warning:** ${L.limitWarning(e.id, s)}\n` : ""}- Type: ${kind}. ${why}\n- Calibration domain: ${a
         ? `${a.status} the ${a.dataset} (n = ${a.n}); squared Mahalanobis distance D² = ${f(a.d2)} against the 95th and 99th percentiles of the calibration data, ${f(a.p95)} and ${f(a.p99)}. ${a.status === "inside" ? "The composition resembles the calibration experiments." : a.status === "marginal" ? "The composition lies at the edge of the calibration data; expect an error larger than the published one." : "The composition is unlike the calibration experiments: the equation is being extrapolated and its published error does not apply."}`
         : "not assessed. No calibration dataset is distributed for this equation, so compare the composition with the calibration range above by hand."}`);
     }
@@ -135,7 +137,7 @@
     // ---- 4. uncertainty
     out.push("## 4. Uncertainty");
     if (pt) {
-      const o = Object.assign({}, pt.solveOpt, pt.mc), base = Object.assign({}, sample, { cpxFe2: (ctx.eqOpt && ctx.eqOpt.cpxFe2) || "total" });
+      const o = Object.assign({}, pt.solveOpt, pt.mc), base = Object.assign({}, sample, { cpxFe2: (ctx.eqOpt && ctx.eqOpt.cpxFe2) || "total", feMode: ctx.eqOpt && ctx.eqOpt.feMode });
       mcA = L.monteCarloPT(pt.tId, pt.pId, base, Object.assign({}, o, { calibration: false }));
       mcT = L.monteCarloPT(pt.tId, pt.pId, base, Object.assign({}, o, { calibration: true }));
       out.push("Three sources of uncertainty are kept apart.",
