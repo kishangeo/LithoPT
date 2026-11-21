@@ -302,7 +302,8 @@ select[multiple] option { padding: 0.35rem 0.5rem; border-radius: 5px; }
 /* ---------------------------------------------------------------- tables */
 .table-responsive { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .table-scroll { max-height: 68vh; overflow: auto; }
-.table-scroll .data-table th { white-space: normal; min-width: 7rem; }
+[hidden] { display: none !important; } /* classes that set display must not override the hidden attribute */
+.table-scroll .data-table th { white-space: normal; min-width: 7rem; top: -1px; } /* -1px closes the sub-pixel gap rows showed through */
 .theme-switching, .theme-switching *, .theme-switching *::before, .theme-switching *::after { transition: none !important; }
 .data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.84rem; text-align: left; }
 .data-table th {
@@ -421,7 +422,7 @@ dialog.modal.closing { animation: modalOut 0.18s ease forwards; }
 dialog.modal::backdrop { background: rgba(5, 8, 16, 0.55); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
 dialog.modal[open]::backdrop { animation: fadeIn 0.3s ease; }
 dialog.modal.closing::backdrop { opacity: 0; transition: opacity 0.18s; }
-@keyframes modalIn { from { opacity: 0; transform: translateY(18px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes modalIn { from { transform: translateY(18px) scale(0.97); } to { transform: none; } } /* no fade: a stalled fade left the dialog see-through */
 @keyframes modalOut { to { opacity: 0; transform: translateY(10px) scale(0.98); } }
 .modal-head { display: flex; align-items: center; gap: 0.85rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); background: var(--surface-2); }
 .modal-head > div:nth-child(2) { flex: 1; min-width: 0; }

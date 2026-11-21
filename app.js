@@ -832,7 +832,7 @@
         el("ul", {}, why.map((w) => el("li", { text: w }))), actions ? el("div", { class: "action-buttons-group" }, actions) : null]);
       const section = (title, items) => { out.appendChild(el("h3", { class: "section-heading", text: title })); out.appendChild(items.length ? el("div", { class: "adv-grid" }, items) : el("p", { class: "form-hint", text: "None can be evaluated for the analyses entered." })); };
       const apply = (p, thenReport) => {
-        refreshPtSelects(); $("ptThermo").value = p.T; $("ptBaro").value = p.P; goTab("tab-pt");
+        refreshPtSelects(); $("ptThermo").value = p.T; $("ptBaro").value = p.P; $("ptSummary").textContent = ""; goTab("tab-pt"); // no glimpse of the previous result
         busy($("runPtBtn"), () => { runPt(); if (thenReport) document.querySelector("#tab-pt [data-report=view]").click(); });
       };
       section("Thermometer–barometer pairs", r.pairs.slice(0, 3).map((p) => {

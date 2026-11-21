@@ -114,7 +114,7 @@ Columns LithoPT doesn't recognise are listed back to you rather than guessed. A 
 
 ## Citing
 
-> Tiwari, K. (2026). LithoPT: browser-based thermobarometry with calibration-domain diagnostics and model-choice uncertainty (Version v4.2.1) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.24341232
+> Tiwari, K. (2026). LithoPT: browser-based thermobarometry with calibration-domain diagnostics and model-choice uncertainty (Version v4.2.2) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.24341232
 
 Cite LithoPT **and** the original publication of every equation you use. The *Equations & references* tab lists each one with its DOI, and the Share dialog builds the citation list for your calculation.
 
