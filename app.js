@@ -93,17 +93,6 @@
     return lab;
   }
   // Animate a number up to its final text; the final text is exactly `final`.
-  function countUp(node, to, d, unit, final) {
-    if (REDUCED || !Number.isFinite(to)) { node.textContent = final; return; }
-    const t0 = performance.now(), from = to * 0.9;
-    const step = (t) => {
-      const k = Math.min(1, (t - t0) / 650), e = 1 - Math.pow(1 - k, 3);
-      node.textContent = k < 1 ? `${(from + (to - from) * e).toFixed(d)} ${unit}` : final;
-      if (k < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-    setTimeout(() => { node.textContent = final; }, 700); // frames pause in background tabs; the final value must not depend on them
-  }
   // Show a spinner on the button while a synchronous job runs (lets the browser paint first).
   function busy(btn, fn) {
     btn.classList.add("is-busy"); btn.disabled = true;
@@ -191,7 +180,7 @@
           for (const f of keys) state.sample[ph][f] = got[f];
           renderPhaseInputs(); toast(`${keys.length} values pasted into ${PHASE_LABEL[ph]}`);
         };
-        (navigator.clipboard && navigator.clipboard.readText ? navigator.clipboard.readText() : Promise.reject()).then(use, () => pasteDialog("Paste the analysis here", use));
+        (navigator.clipboard && navigator.clipboard.readText ? navigator.clipboard.readText() : Promise.reject()).then((t) => (t.trim() ? use(t) : pasteDialog("Paste the analysis here", use)), () => pasteDialog("Paste the analysis here", use));
       });
       const head = el("div", { class: "diag-header" }, [el("span", { class: "phase-tag" }, [el("span", { class: "phase-abbr", text: ph }), el("strong", { text: PHASE_LABEL[ph] })]), el("span", { class: "head-badges" }, [catB, sum, ph === "Trace" ? null : paste])]);
       const meter = ph === "Trace" ? null : el("div", { class: "sum-meter", id: `meter_${ph}` }, [el("span")]);
@@ -323,7 +312,6 @@
     const eT = L.EQ[tId], eP = L.EQ[pId];
     const kpi = (cls, label, v, d, unit, sub) => {
       const strong = el("strong", { text: `${fmt(v, d)} ${unit}` });
-      countUp(strong, v, d, unit, `${fmt(v, d)} ${unit}`);
       return el("div", { class: "kpi " + cls }, [el("span", { text: label }), strong, el("small", { text: sub })]);
     };
     const hasMc = mc && mc.T_C;
@@ -983,7 +971,6 @@
   function initDialogs() {
     for (const d of document.querySelectorAll("dialog.modal")) {
       d.addEventListener("click", (ev) => { if (ev.target === d) closeDialog(d); }); // backdrop click
-      d.addEventListener("cancel", (ev) => { ev.preventDefault(); closeDialog(d); }); // Esc, animated
       d.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => closeDialog(d)));
       d.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", () => copyText($(b.dataset.copy).value, b)));
     }
@@ -1004,7 +991,8 @@
     for (const r of lastRows) lines.push(`• ${r.e.name}: ${r.txt}${r.note ? ` (${r.note})` : ` (SEE ${r.e.see}${r.a ? `; ${r.a.status}` : ""})`}`);
     const t = lastPt && lastPt.det.converged ? lastPt : null;
     if (t) {
-      lines.push("", `P–T solution, ${L.EQ[t.tId].name} + ${L.EQ[t.pId].name}: ${fmt(t.det.T_K - 273.15)} °C, ${fmt(t.det.P_kbar, 2)} kbar`);
+      const dm = $("depthModel").value, z = L.pressureToDepth(t.det.P_kbar, dm, readNum("depthRho") || 2700);
+      lines.push("", `P–T solution, ${L.EQ[t.tId].name} + ${L.EQ[t.pId].name}: ${fmt(t.det.T_K - 273.15)} °C, ${fmt(t.det.P_kbar, 2)} kbar${Number.isFinite(z) ? `, ≈ ${fmt(z, 1)} km` : ""}${t.sig !== sig() ? " (inputs changed since this solution)" : ""}`);
       if (t.mc && t.mc.T_C) lines.push(`Monte Carlo (N = ${t.mc.N}): T ${fmt(t.mc.T_C.median)} ± ${fmt(t.mc.T_C.sd)} °C, P ${fmt(t.mc.P_kbar.median, 2)} ± ${fmt(t.mc.P_kbar.sd, 2)} kbar, ρ = ${fmt(t.mc.rho, 3)}`);
     }
     const ens = lastEns && (L.DOMAINS() ? lastEns.summaryInDomain : lastEns.summary);
@@ -1305,7 +1293,7 @@
     // each part of the page starts independently, so one failure cannot leave the rest unwired
     for (const init of [initFormula, initBatch, initCatalog, initDiagramTools, initReports, initAdvisor]) { try { init(); } catch (e) { console.error(e); } }
     $("batchPasteBtn").addEventListener("click", () => (navigator.clipboard && navigator.clipboard.readText ? navigator.clipboard.readText() : Promise.reject())
-      .then((t) => ingest(parseCsv(t)), () => pasteDialog("Paste the table here (one row per line)", (t) => ingest(parseCsv(t)))));
+      .then((t) => (t.trim() ? ingest(parseCsv(t)) : pasteDialog("Paste the table here (one row per line)", (x) => ingest(parseCsv(x)))), () => pasteDialog("Paste the table here (one row per line)", (t) => ingest(parseCsv(t)))));
     $("runPtBtn").addEventListener("click", () => busy($("runPtBtn"), runPt));
     $("runEnsBtn").addEventListener("click", () => busy($("runEnsBtn"), runEnsemble));
     for (const [k, m] of Object.entries(L.DEPTH_MODELS)) $("depthModel").appendChild(el("option", { value: k, text: m.name }));

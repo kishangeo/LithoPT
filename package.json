@@ -1,6 +1,6 @@
 {
   "name": "lithopt",
-  "version": "4.2.2",
+  "version": "4.2.3",
   "description": "Client-side thermobarometry engine and web application",
   "license": "MIT",
   "main": "lithopt-core.js",

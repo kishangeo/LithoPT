@@ -1,5 +1,5 @@
 /**
- * LithoPT interpretation report v4.2.2
+ * LithoPT interpretation report v4.2.3
  * Author: Kishan Tiwari <kishantiwari@iitkgp.ac.in>
  *
  * DOM-free: builds a Markdown report from a calculation (and converts that Markdown to HTML for the
