@@ -159,13 +159,14 @@ P("This manual explains the science behind every calculation. Chapter 3 introduc
 H1("2. Getting started")
 H2("2.1 Opening the application")
 P("Open `index.html` in any current web browser (Chrome, Firefox, Safari or Edge), or visit the hosted web application. No installation is needed. The calculation engine (`lithopt-core.js`) can also be used from Node.js for scripting (Section 13.4).")
-H2("2.2 The five tabs")
+H2("2.2 The tabs")
 TABLE([["Tab", "Purpose"],
        ["Calculator", "Choose an equilibrium system, enter the P (for thermometers) and T (for barometers) at which to evaluate, and enter oxide analyses of the phases. All equations of the system are evaluated side by side with their SEE, calibration-domain status and verification status. Equilibrium tests and phase components are shown below."],
        ["P–T solution & Monte Carlo", "Pair any thermometer with any barometer whose phases are available; LithoPT finds their intersection, propagates uncertainty by Monte Carlo simulation, converts P to depth and plots the result. The model-ensemble button solves all compatible pairs."],
        ["Structural formula", "Cations per formula unit for garnet, pyroxenes, olivine, spinel, feldspars, biotite and amphibole, with Droop (1987) Fe³⁺ where applicable. *Take from Calculator* and *Send to Calculator* copy an analysis between the two tabs."],
        ["Batch (CSV)", "Upload many samples at once (CSV, text, Excel .xlsx or a pasted table); every applicable equation is evaluated for every row; results can be exported and each sample opened in the calculator."],
-       ["Equations & references", "Searchable catalogue of all equations with system, type, SEE, calibration range, verification status, calibration dataset and DOI."]],
+       ["Equations & references", "Searchable catalogue of all equations with system, type, SEE, calibration range, verification status, calibration dataset and DOI."],
+       ["User manual and Glossary", "This manual and a glossary of terms, readable offline. Search lists the matching passages; ↑ and ↓ (or Enter and Shift+Enter in the search box) step through every match in the text."]],
       [3.5, 13])
 H2("2.3 A first calculation")
 B(["Select *Example → Metapelite* in the header. The calculator shows the garnet–biotite thermometer for a garnet, biotite and plagioclase analysis.",
