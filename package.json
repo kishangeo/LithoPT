@@ -8,6 +8,9 @@
     "test": "node test/core.test.js && node test/fuzz.js",
     "crosscheck": "python validation/crosscheck_thermobar.py && node validation/crosscheck.js"
   },
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
+  },
   "devDependencies": {
     "@playwright/test": "^1.63.0"
   }
