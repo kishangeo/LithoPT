@@ -1,5 +1,5 @@
 /**
- * LithoPT core engine v4.3.1
+ * LithoPT core engine v4.3.2
  * Author: Kishan Tiwari <kishantiwari@iitkgp.ac.in>
  *
  * Pure, DOM-free calculation library: stoichiometry, mineral components, thermobarometric
@@ -19,7 +19,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const VERSION = "4.3.1";
+  const VERSION = "4.3.2";
   const R = 8.314462618; // J mol⁻¹ K⁻¹ (CODATA 2018)
   const ln = Math.log, log10 = Math.log10;
 

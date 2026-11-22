@@ -425,7 +425,21 @@
       <button id="pasteOk" class="btn btn-primary btn-block" type="button"><span>Use pasted text</span></button>
     </div>
   </dialog>
-  <dialog id="nameDialog" class="modal" aria-labelledby="nameTitle">
+  <dialog id="keysDialog" class="modal" aria-labelledby="keysTitle">
+    <div class="modal-head">
+      <div><h2 id="keysTitle">Keyboard shortcuts</h2><p>Tab keys work when the cursor is not in a field</p></div>
+      <button class="modal-close" data-close aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <table class="data-table"><tbody>
+        <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd></td><td>Solve P–T</td></tr>
+        <tr><td><kbd>1</kbd> – <kbd>7</kbd></td><td>Switch tabs</td></tr>
+        <tr><td><kbd>?</kbd></td><td>Show this list</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Close a dialog</td></tr>
+      </tbody></table>
+    </div>
+  </dialog>
+  <dialog id="nameDialog"class="modal" aria-labelledby="nameTitle">
     <div class="modal-head">
       <div><h2 id="nameTitle">Name</h2><p>Saved samples stay in this browser only</p></div>
       <button class="modal-close" data-close aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>

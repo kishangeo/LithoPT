@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://lithopt.vercel.app/sitemap.xml

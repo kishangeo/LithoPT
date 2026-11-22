@@ -52,6 +52,7 @@ The calibration-domain check (shrinkage Mahalanobis D² of an analysis from an e
 ### New in 4.3
 
 - **Phones and tablets** (4.3.1): larger diagram text on narrow screens, tap-to-read on the P–T diagram, decimal keypad for numbers, stacked mineral-card headers.
+- **Shortcuts dialog** (4.3.2): `?` opens a list of keyboard shortcuts; robots.txt and sitemap.xml added.
 - **Fe³⁺ per phase**: all Fe²⁺ (default, as calibrated), Droop (1987) or a fixed Fe³⁺/ΣFe on Fe-bearing mineral cards, as a sensitivity test; recorded in links, JSON and the report.
 - **Saved samples**: save, reload and delete named samples in this browser from the example menu.
 - **Keyboard shortcuts**: Ctrl/⌘+Enter solves P–T, 1–7 switch tabs, ? lists them.
@@ -124,7 +125,7 @@ Columns LithoPT doesn't recognise are listed back to you rather than guessed. A 
 
 ## Citing
 
-> Tiwari, K. (2026). LithoPT: browser-based thermobarometry with calibration-domain diagnostics and model-choice uncertainty (Version v4.3.1) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.24341232
+> Tiwari, K. (2026). LithoPT: browser-based thermobarometry with calibration-domain diagnostics and model-choice uncertainty (Version v4.3.2) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.24341232
 
 Cite LithoPT **and** the original publication of every equation you use. The *Equations & references* tab lists each one with its DOI, and the Share dialog builds the citation list for your calculation.
 

@@ -1,6 +1,6 @@
 # Third-party notices
 
-*LithoPT v4.3.1 · Kishan Tiwari (kishantiwari@iitkgp.ac.in)*
+*LithoPT v4.3.2 · Kishan Tiwari (kishantiwari@iitkgp.ac.in)*
 
 LithoPT contains no third-party source code or data.
 

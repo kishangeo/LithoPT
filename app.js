@@ -1379,7 +1379,7 @@
       if (typing || ev.ctrlKey || ev.metaKey || ev.altKey || document.querySelector("dialog[open]")) return;
       const tabs = document.querySelectorAll(".tab-btn");
       if (/^[1-9]$/.test(ev.key) && tabs[+ev.key - 1]) { tabs[+ev.key - 1].click(); return; }
-      if (ev.key === "?") toast("Shortcuts: Ctrl/⌘+Enter solve P–T · 1–7 switch tabs · Esc close a dialog");
+      if (ev.key === "?") openDialog($("keysDialog"));
     });
     buildSystemSelect();
     // each part of the page starts independently, so one failure cannot leave the rest unwired
