@@ -21,7 +21,7 @@ LithoPT is an open-source thermobarometry program that runs entirely in the web 
 
 Every equation is implemented directly from its original publication and checked against the printed equation, including variable definitions and units. LithoPT contains no third-party thermobarometry code or data; molar masses are computed from IUPAC standard atomic weights. Where a paper and its authors' spreadsheet disagree, the choice made is recorded in `validation/CROSSCHECK.md`.
 
-No data leave the browser, and after the first visit the app also works offline.
+Your mineral data never leave the browser (see [Privacy](#privacy)), and after the first visit the app also works offline.
 
 ## Layout
 
@@ -122,6 +122,12 @@ The CSV needs one row per sample. Columns:
 - trace-element columns named `Trace_Ti_zrc`, `Trace_Zr_rt`, `Trace_Zr_ttn`, `Trace_Ti_qz`, `Trace_Ti_bt_apfu`, `Trace_XMg_bt`, `Trace_aTiO2` and `Trace_aSiO2`.
 
 Columns LithoPT doesn't recognise are listed back to you rather than guessed. A row with a non-numeric value in a recognised column is skipped and reported. See `sample_data.csv` for an example.
+
+## Privacy
+
+- **Your analyses stay on your device.** Compositions, results and saved sessions are processed and stored only in your browser; nothing is uploaded.
+- **Usage statistics.** The hosted site (lithopt.vercel.app) loads Google Tag Manager to count visits and page events (page views, scrolling, device and approximate location from Google Analytics). This involves cookies and sends this usage information, not your data, to Google. See [Google's privacy policy](https://policies.google.com/privacy).
+- **Opting out.** Block `googletagmanager.com` with any content blocker, or run your own copy (see [Running](#running)) after removing the two Tag Manager lines from `index.html`; the app works the same.
 
 ## Citing
 
