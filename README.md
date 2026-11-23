@@ -126,8 +126,8 @@ Columns LithoPT doesn't recognise are listed back to you rather than guessed. A 
 ## Privacy
 
 - **Your analyses stay on your device.** Compositions, results and saved sessions are processed and stored only in your browser; nothing is uploaded.
-- **Usage statistics.** The hosted site (lithopt.vercel.app) loads Google Tag Manager to count visits and page events (page views, scrolling, device and approximate location from Google Analytics). This involves cookies and sends this usage information, not your data, to Google. See [Google's privacy policy](https://policies.google.com/privacy).
-- **Opting out.** Block `googletagmanager.com` with any content blocker, or run your own copy (see [Running](#running)) after removing the two Tag Manager lines from `index.html`; the app works the same.
+- **Usage statistics, only if you accept.** On first visit the hosted site (lithopt.vercel.app) asks for consent; only after **Accept** does it load Google Tag Manager to count visits and page events (page views, scrolling, device and approximate location from Google Analytics). This involves cookies and sends this usage information, not your data, to Google. See [Google's privacy policy](https://policies.google.com/privacy).
+- **Opting out.** Click **Decline**, or later clear this site's data in your browser to be asked again. Self-hosted copies can drop analytics by deleting `gtm.js` and its line in `index.html`; the app works the same.
 
 ## Citing
 
